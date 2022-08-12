@@ -21,15 +21,6 @@ import org.jboss.netty.logging.Log4JLoggerFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 
-import com.google.inject.Injector;
-
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.actor.UntypedActorFactory;
-import akka.pattern.Patterns;
-import akka.util.Timeout;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -41,9 +32,19 @@ import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
 import ua.com.fielden.platform.gis.gps.AbstractAvlModule;
 import ua.com.fielden.platform.gis.gps.AvlData;
 import ua.com.fielden.platform.gis.gps.IModuleLookup;
+import ua.com.fielden.platform.gis.gps.MachineServerState;
 import ua.com.fielden.platform.gis.gps.factory.DefaultGpsHandlerFactory;
 import ua.com.fielden.platform.gis.gps.server.ServerTeltonika;
 import ua.com.fielden.platform.utils.Pair;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
+import akka.actor.UntypedActor;
+import akka.actor.UntypedActorFactory;
+import akka.pattern.Patterns;
+import akka.util.Timeout;
+
+import com.google.inject.Injector;
 
 /**
  * A container for all actors that maintains messages.
@@ -51,7 +52,7 @@ import ua.com.fielden.platform.utils.Pair;
  * @author TG Team
  * 
  */
-public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule, ASSOCIATION extends AbstractAvlMachineModuleTemporalAssociation<MESSAGE, MACHINE, MODULE>, MACHINE_ACTOR extends AbstractAvlMachineActor<MESSAGE, MACHINE>, MODULE_ACTOR extends AbstractAvlModuleActor<MESSAGE, MACHINE, MODULE, ASSOCIATION>> implements IModuleLookup<MODULE> {
+public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule, ASSOCIATION extends AbstractAvlMachineModuleTemporalAssociation<MESSAGE, MACHINE, MODULE>, MACHINE_ACTOR extends AbstractAvlMachineActor<MESSAGE, MACHINE>, MODULE_ACTOR extends AbstractAvlModuleActor<MESSAGE, MACHINE, MODULE, ASSOCIATION>, VIO_RESOLVER_ACTOR extends AbstractViolatingMessageResolverActor<MESSAGE>> implements IModuleLookup<MODULE> {
 
     protected static final Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(AbstractActors.class);
 
@@ -64,22 +65,32 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
     private final Map<String, Pair<MODULE, ActorRef>> moduleActors; // by IMEI
     private final ActorRef modulesCounter;
 
+    private final ActorRef violatingMessageResolver;
+
     private final Map<MACHINE, MESSAGE> machinesWithLastMessages;
     private final Map<MODULE, List<ASSOCIATION>> modulesWithAssociations;
     private final String gpsHost;
     private final Integer gpsPort;
     private final Injector injector;
+    private final boolean emergencyMode;
+    private final int windowSize;
+    private final int windowSize2;
+    private final int windowSize3;
+    private final double averagePacketSizeThreshould;
+    private final double averagePacketSizeThreshould2;
 
     /**
      * Creates an actor system responsible for processing messages and getting efficiently a state from it (e.g. last machine message).
      * 
      */
-    public AbstractActors(final Injector injector, final Map<MACHINE, MESSAGE> machinesWithLastMessages, final Map<MODULE, List<ASSOCIATION>> modulesWithAssociations, final String gpsHost, final Integer gpsPort) {
+    public AbstractActors(final Injector injector, final Map<MACHINE, MESSAGE> machinesWithLastMessages, final Map<MODULE, List<ASSOCIATION>> modulesWithAssociations, final String gpsHost, final Integer gpsPort, final boolean emergencyMode, final int windowSize, final int windowSize2, final int windowSize3, final double averagePacketSizeThreshould, final double averagePacketSizeThreshould2) {
         this.gpsHost = gpsHost;
         this.gpsPort = gpsPort;
         this.injector = injector;
 
         this.system = ActorSystem.create("actors");
+
+        this.violatingMessageResolver = createViolatingMessageResolverActorRef(system);
 
         this.machinesWithLastMessages = new HashMap<MACHINE, MESSAGE>(machinesWithLastMessages);
         machinesCounter = MachinesCounterActor.create(system, keys(this.machinesWithLastMessages.keySet()), this);
@@ -89,6 +100,12 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
 
         this.machineActors = new HashMap<>();
         this.moduleActors = new ConcurrentHashMap<>(); // needed thread-safe map not to produce conflicts by dataReceived() and promoteChangedModule()
+        this.emergencyMode = emergencyMode;
+        this.windowSize = windowSize;
+        this.windowSize2 = windowSize2;
+        this.windowSize3 = windowSize3;
+        this.averagePacketSizeThreshould = averagePacketSizeThreshould;
+        this.averagePacketSizeThreshould2 = averagePacketSizeThreshould2;
     }
 
     private static <T extends AbstractEntity<String>> Set<String> keys(final Set<T> keySet) {
@@ -105,7 +122,7 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      * @param injector
      * @return
      */
-    public AbstractActors<MESSAGE, MACHINE, MODULE, ASSOCIATION, MACHINE_ACTOR, MODULE_ACTOR> startActorSystem() {
+    public AbstractActors<MESSAGE, MACHINE, MODULE, ASSOCIATION, MACHINE_ACTOR, MODULE_ACTOR, VIO_RESOLVER_ACTOR> startActorSystem() {
         LOGGER.info("\tModule actors starting...");
         for (final Entry<MODULE, List<ASSOCIATION>> moduleAssociations : this.modulesWithAssociations.entrySet()) {
             registerAndStartModuleActor(moduleAssociations.getKey(), moduleAssociations.getValue());
@@ -131,7 +148,7 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      * @param moduleAssociations
      */
     public void registerAndStartMachineActor(final MACHINE machine, final MESSAGE lastMessage) {
-        this.machineActors.put(machine.getId(), create(injector, system, machine, lastMessage, machinesCounter));
+        this.machineActors.put(machine.getId(), create(injector, system, machine, lastMessage, machinesCounter, violatingMessageResolver));
     }
 
     /**
@@ -162,16 +179,33 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      * @param machineAndMessage
      * @return
      */
-    protected final ActorRef create(final Injector injector, final ActorSystem system, final MACHINE machine, final MESSAGE lastMessage, final ActorRef machinesCounterRef) {
+    protected final ActorRef create(final Injector injector, final ActorSystem system, final MACHINE machine, final MESSAGE lastMessage, final ActorRef machinesCounterRef, final ActorRef violatingMessageResolverRef) {
         final ActorRef machineActorRef = system.actorOf(new Props(new UntypedActorFactory() {
             private static final long serialVersionUID = -6677642334839003771L;
 
             @Override
             public UntypedActor create() {
-                return createMachineActor(injector, machine, lastMessage, machinesCounterRef);
+                return createMachineActor(injector, machine, lastMessage, machinesCounterRef, violatingMessageResolverRef);
             }
         }), createName(machine));
         return machineActorRef;
+    }
+
+    /**
+     * Creates an actor that resolves violating messages.
+     *
+     * @return
+     */
+    protected final ActorRef createViolatingMessageResolverActorRef(final ActorSystem system) {
+        final ActorRef actRef = system.actorOf(new Props(new UntypedActorFactory() {
+            private static final long serialVersionUID = -6677642334839003771L;
+
+            @Override
+            public UntypedActor create() {
+                return createViolatingMessageResolverActor(injector);
+            }
+        }), "violating_message_resolver_actor");
+        return actRef;
     }
 
     /**
@@ -181,7 +215,7 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      * @param machineAndMessage
      * @return
      */
-    protected abstract MACHINE_ACTOR createMachineActor(final Injector injector, final MACHINE machine, final MESSAGE lastMessage, final ActorRef machinesCounterRef);
+    protected abstract MACHINE_ACTOR createMachineActor(final Injector injector, final MACHINE machine, final MESSAGE lastMessage, final ActorRef machinesCounterRef, final ActorRef violatingMessageResolverRef);
 
     /**
      * Creates an instance of concrete {@link AbstractAvlMachineActor} implementation.
@@ -191,6 +225,14 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      * @return
      */
     protected abstract MODULE_ACTOR createModuleActor(final Injector injector, final MODULE module, final List<ASSOCIATION> associations, final ActorRef modulesCounterRef);
+
+    /**
+     * Creates an instance of concrete {@link AbstractViolatingMessageResolverActor} implementation.
+     *
+     * @param injector
+     * @return
+     */
+    protected abstract VIO_RESOLVER_ACTOR createViolatingMessageResolverActor(final Injector injector);
 
     /**
      * Creates a machine actor name using a transliterated version of machine's key.
@@ -294,6 +336,25 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
     }
 
     /**
+     * An API method for get server states update.
+     */
+    public Map<Long, MachineServerState> getServerStatesUpdate(final Map<Long, MachineServerState> serverStatesRequest) {
+        final DateTime st = new DateTime();
+        final Timeout timeout = new Timeout(Duration.create(50000, "seconds"));
+        // TODO use several (or even one) existing LastMessageRetrieverActors? just not to create new ones every time
+        final Future<Object> future = Patterns.ask(LastMessageRetrieverActor.create(getSystem(), getMachineActors()), new MachinesOldServerStates(serverStatesRequest), timeout);
+        try {
+            final Map<Long, MachineServerState> result = (Map<Long, MachineServerState>) Await.result(future, timeout.duration());
+            final Period p = new Period(st, new DateTime());
+            getLogger().info("New server states [" + result.size() + "] for " + serverStatesRequest.size() + " machines retrieved in " + (p.getHours() == 0 ? "" : p.getHours() + " h ") + (p.getMinutes() == 0 ? "" : p.getMinutes() + " m ") + p.getSeconds() + " s " + p.getMillis() + " ms.");
+            return result;
+        } catch (final Exception e) {
+            getLogger().error(e);
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
      * Performs some custom action after the actors has been started.
      */
     protected void machineActorsStartedPostAction() {
@@ -318,7 +379,7 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
         InternalLoggerFactory.setDefaultFactory(new Log4JLoggerFactory());
         final ChannelGroup allChannels = new DefaultChannelGroup("gps-server");
         final ConcurrentHashMap<String, Channel> existingConnections = new ConcurrentHashMap<>();
-        final ServerTeltonika serverTeltonika = new ServerTeltonika(gpsHost, gpsPort, existingConnections, allChannels, new DefaultGpsHandlerFactory<MESSAGE, MACHINE, MODULE, ASSOCIATION, MACHINE_ACTOR, MODULE_ACTOR>(existingConnections, allChannels, this)) {
+        final ServerTeltonika serverTeltonika = new ServerTeltonika(gpsHost, gpsPort, existingConnections, allChannels, new DefaultGpsHandlerFactory<MESSAGE, MACHINE, MODULE, ASSOCIATION, MACHINE_ACTOR, MODULE_ACTOR, VIO_RESOLVER_ACTOR>(existingConnections, allChannels, this)) {
             @Override
             public void run() {
                 super.run();
@@ -382,5 +443,33 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
             LOGGER.error(ex);
             return Result.failure(ex);
         }
+    }
+
+    public boolean isEmergencyMode() {
+        return emergencyMode;
+    }
+
+    public int windowSize() {
+        return windowSize;
+    }
+
+    public int windowSize2() {
+        return windowSize2;
+    }
+
+    public int windowSize3() {
+        return windowSize3;
+    }
+
+    public double averagePacketSizeThreshould() {
+        return averagePacketSizeThreshould;
+    }
+
+    public double averagePacketSizeThreshould2() {
+        return averagePacketSizeThreshould2;
+    }
+
+    protected Map<Long, ActorRef> getMachineActors() {
+        return machineActors;
     }
 }

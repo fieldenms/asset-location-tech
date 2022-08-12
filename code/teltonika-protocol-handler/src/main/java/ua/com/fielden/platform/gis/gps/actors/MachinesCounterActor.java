@@ -24,10 +24,10 @@ public class MachinesCounterActor extends UntypedActor {
     protected static final Logger LOGGER = getLogger(MachinesCounterActor.class);
 
     private final Set<String> notStartedMachinesKeys, machinesKeys;
-    private final AbstractActors<?, ?, ?, ?, ?, ?> actors;
+    private final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors;
     private int startedMachinesCount;
 
-    public MachinesCounterActor(final Set<String> machinesKeys, final AbstractActors<?, ?, ?, ?, ?, ?> actors) {
+    public MachinesCounterActor(final Set<String> machinesKeys, final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors) {
         this.notStartedMachinesKeys = new LinkedHashSet<>(machinesKeys);
         this.machinesKeys = new LinkedHashSet<>(machinesKeys);
         this.startedMachinesCount = 0;
@@ -41,10 +41,11 @@ public class MachinesCounterActor extends UntypedActor {
      * @param machinesCount
      * @return
      */
-    public static ActorRef create(final ActorSystem system, final Set<String> machinesKeys, final AbstractActors<?, ?, ?, ?, ?, ?> actors) {
+    public static ActorRef create(final ActorSystem system, final Set<String> machinesKeys, final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors) {
         final ActorRef machinesCounterRef = system.actorOf(new Props(new UntypedActorFactory() {
             private static final long serialVersionUID = -6677642334839003771L;
 
+            @Override
             public UntypedActor create() {
                 return new MachinesCounterActor(machinesKeys, actors);
             }

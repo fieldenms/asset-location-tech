@@ -16,8 +16,6 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 
-import akka.actor.ActorRef;
-import akka.actor.UntypedActor;
 import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachineModuleTemporalAssociation;
@@ -25,6 +23,8 @@ import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
 import ua.com.fielden.platform.gis.gps.AbstractAvlModule;
 import ua.com.fielden.platform.gis.gps.AvlData;
 import ua.com.fielden.platform.persistence.HibernateUtil;
+import akka.actor.ActorRef;
+import akka.actor.UntypedActor;
 
 /**
  * This actor is responsible for messages processing for concrete module and redirection to appropriate machine actors.
@@ -50,9 +50,9 @@ public abstract class AbstractAvlModuleActor<MESSAGE extends AbstractAvlMessage,
     // and should not be used anywhere!
     // Please use 'module' property in this actor, which relevance is updated during moduleActor lifecycle
     // (e.g. module can have IMEI or serialNumber updated through promoteChangedModule(..) method).
-    private final AbstractActors<?, ?, ?, ?, ?, ?> actors;
+    private final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors;
 
-    public AbstractAvlModuleActor(final EntityFactory factory, final MODULE module, final List<ASSOCIATION> machineAssociations, final HibernateUtil hibUtil, final ActorRef modulesCounterRef, final AbstractActors<?, ?, ?, ?, ?, ?> actors) {
+    public AbstractAvlModuleActor(final EntityFactory factory, final MODULE module, final List<ASSOCIATION> machineAssociations, final HibernateUtil hibUtil, final ActorRef modulesCounterRef, final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors) {
         this.modulesCounterRef = modulesCounterRef;
         this.actors = actors;
         this.module = module;

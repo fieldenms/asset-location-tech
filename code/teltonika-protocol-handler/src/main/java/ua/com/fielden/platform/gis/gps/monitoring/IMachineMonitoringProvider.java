@@ -8,6 +8,7 @@ import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachineModuleTemporalAssociation;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
 import ua.com.fielden.platform.gis.gps.AbstractAvlModule;
+import ua.com.fielden.platform.gis.gps.MachineServerState;
 
 /**
  * A contract to provide access to machine related monitoring information that gets updated asynchronously at runtime during receiving of GPS messages.
@@ -16,6 +17,9 @@ import ua.com.fielden.platform.gis.gps.AbstractAvlModule;
  * 
  */
 public interface IMachineMonitoringProvider<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule, ASSOCIATION extends AbstractAvlMachineModuleTemporalAssociation<MESSAGE, MACHINE, MODULE>> {
+
+    Map<Long, MachineServerState> getServerStatesUpdate(final Map<Long, MachineServerState> serverStatesRequest);
+
     Map<Long, List<MESSAGE>> getLastMessagesUpdate(final Map<Long, Date> machinesTiming);
 
     /**

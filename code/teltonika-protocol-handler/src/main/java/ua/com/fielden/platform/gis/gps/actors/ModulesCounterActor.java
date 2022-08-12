@@ -21,10 +21,10 @@ public class ModulesCounterActor extends UntypedActor {
     protected static final Logger LOGGER = getLogger(ModulesCounterActor.class);
 
     private final Set<String> notStartedModulesKeys, modulesKeys;
-    private final AbstractActors<?, ?, ?, ?, ?, ?> actors;
+    private final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors;
     private int startedModulesCount;
 
-    public ModulesCounterActor(final Set<String> modulesKeys, final AbstractActors<?, ?, ?, ?, ?, ?> actors) {
+    public ModulesCounterActor(final Set<String> modulesKeys, final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors) {
         this.notStartedModulesKeys = new LinkedHashSet<>(modulesKeys);
         this.modulesKeys = new LinkedHashSet<>(modulesKeys);
         this.startedModulesCount = 0;
@@ -38,10 +38,11 @@ public class ModulesCounterActor extends UntypedActor {
      * @param modulesCount
      * @return
      */
-    public static ActorRef create(final ActorSystem system, final Set<String> modulesKeys, final AbstractActors<?, ?, ?, ?, ?, ?> actors) {
+    public static ActorRef create(final ActorSystem system, final Set<String> modulesKeys, final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors) {
         final ActorRef modulesCounterRef = system.actorOf(new Props(new UntypedActorFactory() {
             private static final long serialVersionUID = -6677642334839003771L;
 
+            @Override
             public UntypedActor create() {
                 return new ModulesCounterActor(modulesKeys, actors);
             }

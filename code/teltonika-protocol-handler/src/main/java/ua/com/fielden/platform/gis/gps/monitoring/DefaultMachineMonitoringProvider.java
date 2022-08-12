@@ -13,6 +13,7 @@ import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachineModuleTemporalAssociation;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
 import ua.com.fielden.platform.gis.gps.AbstractAvlModule;
+import ua.com.fielden.platform.gis.gps.MachineServerState;
 import ua.com.fielden.platform.gis.gps.actors.AbstractActors;
 import ua.com.fielden.platform.gis.gps.actors.Changed;
 import ua.com.fielden.platform.gis.gps.actors.New;
@@ -25,20 +26,24 @@ import ua.com.fielden.platform.gis.gps.actors.New;
  */
 public class DefaultMachineMonitoringProvider<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule, ASSOCIATION extends AbstractAvlMachineModuleTemporalAssociation<MESSAGE, MACHINE, MODULE>> implements IMachineMonitoringProvider<MESSAGE, MACHINE, MODULE, ASSOCIATION> {
     protected static final Logger LOGGER = getLogger(DefaultMachineMonitoringProvider.class);
-    
-    private AbstractActors<MESSAGE, MACHINE, MODULE, ASSOCIATION, ?, ?> actors;
+    private AbstractActors<MESSAGE, MACHINE, MODULE, ASSOCIATION, ?, ?, ?> actors;
 
-    public void setActors(final AbstractActors<MESSAGE, MACHINE, MODULE, ASSOCIATION, ?, ?> actors) {
+    public void setActors(final AbstractActors<MESSAGE, MACHINE, MODULE, ASSOCIATION, ?, ?, ?> actors) {
         this.actors = actors;
     }
 
-    public AbstractActors<MESSAGE, MACHINE, MODULE, ASSOCIATION, ?, ?> getActors() {
+    public AbstractActors<MESSAGE, MACHINE, MODULE, ASSOCIATION, ?, ?, ?> getActors() {
         return actors;
     }
 
     @Override
     public Map<Long, List<MESSAGE>> getLastMessagesUpdate(final Map<Long, Date> machinesTiming) {
         return actors.getLastMessagesUpdate(machinesTiming);
+    }
+
+    @Override
+    public Map<Long, MachineServerState> getServerStatesUpdate(final Map<Long, MachineServerState> serverStatesRequest) {
+        return actors.getServerStatesUpdate(serverStatesRequest);
     }
 
     @Override
