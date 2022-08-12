@@ -41,6 +41,14 @@ It binds together all platform core and application specific web resources in to
 			<artifactId>platform-web-resources</artifactId>
 			<version>${platform.version}</version>
 		</dependency>
+        
+       <!-- H2 RDBMS JDBC dependency; H2 is used for unit testing and as initial application database -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.199</version>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 	<build>
 		<resources>
