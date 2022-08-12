@@ -10,6 +10,16 @@ import fielden.personnel.Person;
 import ua.com.fielden.platform.basic.config.IApplicationDomainProvider;
 import ua.com.fielden.platform.domain.PlatformDomainTypes;
 import ua.com.fielden.platform.entity.AbstractEntity;
+import ua.com.fielden.platform.sample.domain.TgCoordinate;
+import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMachineRealtimeMonitorMap;
+import ua.com.fielden.platform.sample.domain.TgMessage;
+import ua.com.fielden.platform.sample.domain.TgMessageMap;
+import ua.com.fielden.platform.sample.domain.TgOrgUnit;
+import ua.com.fielden.platform.sample.domain.TgPolygon;
+import ua.com.fielden.platform.sample.domain.TgPolygonMap;
+import ua.com.fielden.platform.sample.domain.TgStop;
+import ua.com.fielden.platform.sample.domain.TgStopMap;
 
 /**
  * A class to register domain entities.
@@ -24,6 +34,20 @@ public class ApplicationDomain implements IApplicationDomainProvider {
     static {
         entityTypes.addAll(PlatformDomainTypes.types);
         add(Person.class);
+
+        add(TgMessage.class);
+        add(TgMessageMap.class);
+
+        add(TgOrgUnit.class);
+        add(TgMachine.class);
+        add(TgMachineRealtimeMonitorMap.class);
+
+        add(TgStop.class);
+        add(TgStopMap.class);
+
+        add(TgPolygon.class);
+        add(TgCoordinate.class);
+        add(TgPolygonMap.class);
     }
 
     private static void add(final Class<? extends AbstractEntity<?>> domainType) {
