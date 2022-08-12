@@ -1,15 +1,14 @@
 package fielden.webapp;
 
-import java.util.Date;
-
 import org.restlet.Context;
-import org.restlet.data.MediaType;
 import org.restlet.routing.Router;
+
+import com.google.inject.Injector;
 
 import ua.com.fielden.platform.web.app.IWebUiConfig;
 import ua.com.fielden.platform.web.application.AbstractWebUiResources;
-
-import com.google.inject.Injector;
+import ua.com.fielden.platform.web.sse.resources.EventSourcingResourceFactory;
+import ua.com.fielden.platform.web.test.eventsources.TgMessageEventSource;
 
 /**
  * Custom {@link AbstractWebUiResources} for configuring domain specific web resources.
@@ -44,6 +43,7 @@ public class WebUiResources extends AbstractWebUiResources {
     @Override
     protected void registerDomainWebResources(final Router router, final IWebUiConfig webApp) {
         // register custom resources with router.attach calls...
+        router.attach("/sse/message-update-events", new EventSourcingResourceFactory(injector, TgMessageEventSource.class, deviceProvider, dates));
     }
 
 }

@@ -1,23 +1,36 @@
 package fielden.dev_mod.util;
 
 import static java.lang.String.format;
+import static org.apache.logging.log4j.LogManager.getLogger;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
+import org.apache.logging.log4j.Logger;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.H2Dialect;
+import org.joda.time.format.DateTimeFormat;
 
-import static org.apache.logging.log4j.LogManager.getLogger;
-import org.apache.logging.log4j.Logger;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fielden.config.ApplicationDomain;
 import fielden.personnel.Person;
-
 import ua.com.fielden.platform.devdb_support.DomainDrivenDataPopulation;
 import ua.com.fielden.platform.entity.AbstractEntity;
 import ua.com.fielden.platform.persistence.HibernateUtil;
+import ua.com.fielden.platform.sample.domain.TgCoordinate;
+import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMessage;
+import ua.com.fielden.platform.sample.domain.TgOrgUnit;
+import ua.com.fielden.platform.sample.domain.TgPolygon;
 import ua.com.fielden.platform.security.user.User;
 import ua.com.fielden.platform.test.IDomainDrivenTestCaseConfiguration;
 import ua.com.fielden.platform.utils.DbUtils;
@@ -77,6 +90,129 @@ public class PopulateDb extends DomainDrivenDataPopulation {
         
         setupUser(User.system_users.SU, "fielden");
         setupPerson(User.system_users.SU, "fielden");
+
+        LOGGER.info("\tPopulating messages...");
+        final Map<String, TgMachine> machines = new HashMap<>();
+        try {
+            final ClassLoader classLoader = getClass().getClassLoader();
+            final File file = new File(classLoader.getResource("gis/messageEntities.js").getFile());
+            final InputStream stream = new FileInputStream(file);
+            final ObjectMapper objectMapper = new ObjectMapper();
+            final ArrayList oldMessageEntities = objectMapper.readValue(stream, ArrayList.class);
+
+            for (final Object oldMessageEntity: oldMessageEntities) {
+                final Map<String, Object> map = (Map<String, Object>) oldMessageEntity;
+                final Map<String, Object> messageProps = ((Map<String, Object>) map.get("properties"));
+                final String machineKey = (String) ((Map<String, Object>) ((Map<String, Object>) messageProps.get("machine")).get("properties")).get("key");
+                TgMachine found = machines.get(machineKey);
+                if (found == null) {
+                    final TgMachine newMachine = new_(TgMachine.class, machineKey);
+                    newMachine.setDesc(machineKey + " desc");
+                    found = save(newMachine);
+                    machines.put(machineKey, found);
+                }
+                save(new_composite(TgMessage.class, found, DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS").parseDateTime(((String) messageProps.get("gpsTime"))).toDate())
+                        .setX(BigDecimal.valueOf((double) messageProps.get("x")))
+                        .setY(BigDecimal.valueOf((double) messageProps.get("y")))
+                        .setVectorAngle((int) messageProps.get("vectorAngle"))
+                        .setVectorSpeed((int) messageProps.get("vectorSpeed"))
+                        // .setAltitude(223)
+                        // .setVisibleSattelites(2)
+                        .setDin1((boolean) messageProps.get("din1"))
+                        .setGpsPower((boolean) messageProps.get("gpsPower"))
+                        .setTravelledDistance(BigDecimal.valueOf((double) messageProps.get("travelledDistance")))
+                );
+            }
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+
+        LOGGER.info("\tPopulating machines...");
+        try {
+            final ClassLoader classLoader = getClass().getClassLoader();
+            final File file = new File(classLoader.getResource("gis/realtimeMonitorEntities.js").getFile());
+            final InputStream stream = new FileInputStream(file);
+            final ObjectMapper objectMapper = new ObjectMapper();
+            final ArrayList oldMachineEntities = objectMapper.readValue(stream, ArrayList.class);
+
+            final Map<String, TgOrgUnit> orgUnits = new HashMap<>();
+            for (final Object oldMachineEntity: oldMachineEntities) {
+                final Map<String, Object> map = (Map<String, Object>) oldMachineEntity;
+                final Map<String, Object> machineProps = ((Map<String, Object>) map.get("properties"));
+                final String machineKey = (String) machineProps.get("key");
+                TgMachine found = machines.get(machineKey);
+                if (found == null) {
+                    final TgMachine newMachine = new_(TgMachine.class, machineKey);
+                    newMachine.setDesc((String) machineProps.get("desc"));
+                    final Object orgUnitObject = machineProps.get("orgUnit");
+                    if (orgUnitObject != null) {
+                        final String orgUnitKey = (String) ((Map<String, Object>) ((Map<String, Object>) orgUnitObject).get("properties")).get("key");
+                        TgOrgUnit foundOrgUnit = orgUnits.get(orgUnitKey);
+                        if (foundOrgUnit == null) {
+                            final TgOrgUnit newOrgUnit = new_(TgOrgUnit.class, orgUnitKey);
+                            newOrgUnit.setDesc((String) ((Map<String, Object>) ((Map<String, Object>) machineProps.get("orgUnit")).get("properties")).get("desc"));
+                            foundOrgUnit = save(newOrgUnit);
+                            orgUnits.put(orgUnitKey, foundOrgUnit);
+                        }
+                        newMachine.setOrgUnit(foundOrgUnit);
+                    }
+                    found = save(newMachine);
+                    machines.put(machineKey, found);
+                }
+                final Object lastMessageObject = machineProps.get("lastMessage");
+                if (lastMessageObject != null) {
+                    final Map<String, Object> lastMessageProps = (Map<String, Object>) ((Map<String, Object>) lastMessageObject).get("properties");
+
+                    save(new_composite(TgMessage.class, found, DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS").parseDateTime(((String) lastMessageProps.get("gpsTime"))).toDate())
+                            .setX(BigDecimal.valueOf((double) lastMessageProps.get("x")))
+                            .setY(BigDecimal.valueOf((double) lastMessageProps.get("y")))
+                            .setVectorAngle((int) lastMessageProps.get("vectorAngle"))
+                            .setVectorSpeed((int) lastMessageProps.get("vectorSpeed"))
+                            // .setAltitude(223)
+                            // .setVisibleSattelites(2)
+                            .setDin1((boolean) lastMessageProps.get("din1"))
+                            .setGpsPower((boolean) lastMessageProps.get("gpsPower"))
+                            .setTravelledDistance(BigDecimal.valueOf(15.5)) // lastMessageProps.get("travelledDistance")
+                    );
+                }
+            }
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+
+        LOGGER.info("\tPopulating geozones...");
+        try {
+            final ClassLoader classLoader = getClass().getClassLoader();
+            final File file = new File(classLoader.getResource("gis/polygonEntities.js").getFile());
+            final InputStream stream = new FileInputStream(file);
+            final ObjectMapper objectMapper = new ObjectMapper();
+            final ArrayList oldPolygonEntities = objectMapper.readValue(stream, ArrayList.class);
+
+            final Map<String, TgPolygon> polygons = new HashMap<>();
+            for (final Object oldPolygonEntity: oldPolygonEntities) {
+                final Map<String, Object> map = (Map<String, Object>) oldPolygonEntity;
+                final Map<String, Object> polygonProps = ((Map<String, Object>) map.get("properties"));
+                final String polygonKey = (String) polygonProps.get("key");
+                TgPolygon found = polygons.get(polygonKey);
+                if (found == null) {
+                    final TgPolygon newPolygon = new_(TgPolygon.class, polygonKey);
+                    newPolygon.setDesc((String) polygonProps.get("desc"));
+                    found = save(newPolygon);
+                    polygons.put(polygonKey, found);
+                }
+
+                final ArrayList<Object> coordinates = (ArrayList<Object>) polygonProps.get("coordinates");
+                for (final Object coord: coordinates) {
+                    final Map<String, Object> coordProps = ((Map<String, Object>) ((Map<String, Object>) coord).get("properties"));
+                    save(new_composite(TgCoordinate.class, found, (Integer) coordProps.get("order"))
+                            .setLongitude(BigDecimal.valueOf((double) coordProps.get("longitude")))
+                            .setLatitude(BigDecimal.valueOf((double) coordProps.get("latitude")))
+                    );
+                }
+            }
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
+        }
 
         LOGGER.info("Completed database creation and population.");
 	}

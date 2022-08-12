@@ -10,6 +10,10 @@ import fielden.personnel.Person;
 import ua.com.fielden.platform.basic.config.Workflows;
 import ua.com.fielden.platform.entity.AbstractEntity;
 import ua.com.fielden.platform.reflection.TitlesDescsGetter;
+import ua.com.fielden.platform.ui.menu.sample.MiTgMachineRealtimeMonitor;
+import ua.com.fielden.platform.ui.menu.sample.MiTgMessage;
+import ua.com.fielden.platform.ui.menu.sample.MiTgPolygon;
+import ua.com.fielden.platform.ui.menu.sample.MiTgStop;
 import ua.com.fielden.platform.utils.Pair;
 import ua.com.fielden.platform.web.app.config.IWebUiBuilder;
 import ua.com.fielden.platform.web.interfaces.ILayout.Device;
@@ -17,6 +21,10 @@ import ua.com.fielden.platform.web.resources.webui.AbstractWebUiConfig;
 import ua.com.fielden.platform.web.resources.webui.SecurityMatrixWebUiConfig;
 import ua.com.fielden.platform.web.resources.webui.UserRoleWebUiConfig;
 import ua.com.fielden.platform.web.resources.webui.UserWebUiConfig;
+import ua.com.fielden.platform.web.test.server.TgMachineRealtimeMonitorWebUiConfig;
+import ua.com.fielden.platform.web.test.server.TgMessageWebUiConfig;
+import ua.com.fielden.platform.web.test.server.TgPolygonWebUiConfig;
+import ua.com.fielden.platform.web.test.server.TgStopWebUiConfig;
 
 /**
  * App-specific {@link IWebApp} implementation.
@@ -87,6 +95,11 @@ public class WebUiConfig extends AbstractWebUiConfig {
         .addCentre(userWebUiConfig.centre)
         .addCentre(userRoleWebUiConfig.centre);
 
+        TgMessageWebUiConfig.register(injector(), configApp());
+        TgStopWebUiConfig.register(injector(), configApp());
+        TgMachineRealtimeMonitorWebUiConfig.register(injector(), configApp());
+        TgPolygonWebUiConfig.register(injector(), configApp());
+
         // Configure application menu
         configDesktopMainMenu()
         .addModule(Modules.USERS_AND_PERSONNEL.title)
@@ -102,6 +115,22 @@ public class WebUiConfig extends AbstractWebUiConfig {
                     .addMenuItem("User Roles").description("User roles centre").centre(userRoleWebUiConfig.centre).done()
                     .addMenuItem("Security Matrix").description("Security Matrix is used to manage application authorisations for User Roles.").master(securityConfig.master).done()
                 .done()
+                .addMenuItem("GPS-треки").description(
+                        "Перегляд, моніторинг та аналіз GPS повідомлень (у вигляді треків), отриманих від GPS-модулів, які встановлені на машини компанії." + //
+                        "Є можливість переглядати обчислений кілометраж у вигляді графіка і / або таблиці."
+                ).icon("icons:cloud-queue").centre(configApp().getCentre(MiTgMessage.class).get()).done()
+                .addMenuItem("Зупинки").description(
+                        "Перегляд, моніторинг та аналіз зупинок, які були здійснені машинами компанії." + "<br><br>"
+                      + "Зупинка означає, що машина деякий час простоювала або повільно їхала в межах певної невеликої території. Порогові значення "
+                      + "для радіусу території чи швидкості переміщення задає користувач. Також можна задавати "
+                      + "пошук по машинах, організаційних підрозділах та часу здійснення зупинки."
+                ).icon("icons:card-giftcard").centre(configApp().getCentre(MiTgStop.class).get()).done()
+                .addMenuItem("Моніторинг в реальному часі").description(
+                        "Центр для перегляду машин у реальному часі на карті."
+                ).icon("icons:open-with").centre(configApp().getCentre(MiTgMachineRealtimeMonitor.class).get()).done()
+                .addMenuItem("Гео-зони").description(
+                        "Перегляд, моніторинг та аналіз гео-зон."
+                ).icon("icons:flag").centre(configApp().getCentre(MiTgPolygon.class).get()).done()
             .done().done()
         .setLayoutFor(Device.DESKTOP, null, "[[[]]]")
         .setLayoutFor(Device.TABLET, null, "[[[]]]")
