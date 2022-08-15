@@ -8,7 +8,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,6 +20,15 @@ import org.jboss.netty.logging.Log4JLoggerFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 
+import com.google.inject.Injector;
+
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
+import akka.actor.UntypedActor;
+import akka.actor.UntypedActorFactory;
+import akka.pattern.Patterns;
+import akka.util.Timeout;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -36,15 +44,6 @@ import ua.com.fielden.platform.gis.gps.MachineServerState;
 import ua.com.fielden.platform.gis.gps.factory.DefaultGpsHandlerFactory;
 import ua.com.fielden.platform.gis.gps.server.ServerTeltonika;
 import ua.com.fielden.platform.utils.Pair;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.actor.UntypedActorFactory;
-import akka.pattern.Patterns;
-import akka.util.Timeout;
-
-import com.google.inject.Injector;
 
 /**
  * A container for all actors that maintains messages.
@@ -52,7 +51,7 @@ import com.google.inject.Injector;
  * @author TG Team
  * 
  */
-public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule, ASSOCIATION extends AbstractAvlMachineModuleTemporalAssociation<MESSAGE, MACHINE, MODULE>, MACHINE_ACTOR extends AbstractAvlMachineActor<MESSAGE, MACHINE>, MODULE_ACTOR extends AbstractAvlModuleActor<MESSAGE, MACHINE, MODULE, ASSOCIATION>, VIO_RESOLVER_ACTOR extends AbstractViolatingMessageResolverActor<MESSAGE>> implements IModuleLookup<MODULE> {
+public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule, ASSOCIATION extends AbstractAvlMachineModuleTemporalAssociation<MESSAGE, MACHINE, MODULE>, MACHINE_ACTOR extends AbstractAvlMachineActor<MESSAGE, MACHINE>, MODULE_ACTOR extends AbstractAvlModuleActor<MESSAGE, MACHINE, MODULE, ASSOCIATION>, VIO_RESOLVER_ACTOR extends AbstractViolatingMessageResolverActor<MESSAGE>> implements IModuleLookup {
 
     protected static final Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(AbstractActors.class);
 
@@ -409,8 +408,8 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
     }
 
     @Override
-    public Optional<MODULE> get(final String imei) {
-        return ofNullable(isModuleRegistered(imei) ? moduleActors.get(imei).getKey() : null);
+    public boolean isPresent(final String imei) {
+        return ofNullable(isModuleRegistered(imei) ? moduleActors.get(imei).getKey() : null).isPresent();
     }
 
     /**
@@ -432,8 +431,7 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
             LOGGER.info("Operation has been done in " + (p.getHours() == 0 ? "" : p.getHours() + " h ") + (p.getMinutes() == 0 ? "" : p.getMinutes() + " m ") + p.getSeconds()
                     + " s " + p.getMillis() + " ms.");
 
-            if (result instanceof Exception) {
-                final Exception ex = (Exception) result;
+            if (result instanceof final Exception ex) {
                 LOGGER.error(ex);
                 return Result.failure((Exception) result);
             } else { // in other case -- successful

@@ -3,7 +3,6 @@ package ua.com.fielden.platform.gis.gps.server;
 import static java.lang.String.format;
 import static org.apache.logging.log4j.LogManager.getLogger;
 
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.Logger;
@@ -17,14 +16,11 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.group.ChannelGroup;
 
-import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
-import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
-import ua.com.fielden.platform.gis.gps.AbstractAvlModule;
 import ua.com.fielden.platform.gis.gps.AvlData;
 import ua.com.fielden.platform.gis.gps.IMessageHandler;
 import ua.com.fielden.platform.gis.gps.IModuleLookup;
 
-public class ServerTeltonikaHandler<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule> extends SimpleChannelUpstreamHandler {
+public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
     protected final static Logger LOGGER = getLogger(ServerTeltonikaHandler.class);
 
     private static final byte LOGIN_DENY = 0x0;
@@ -35,10 +31,10 @@ public class ServerTeltonikaHandler<MESSAGE extends AbstractAvlMessage, MACHINE 
 
     private String imei;
     private final ChannelBuffer ack = ChannelBuffers.buffer(4);
-    private final IModuleLookup<MODULE> moduleLookup;
+    private final IModuleLookup moduleLookup;
     private final IMessageHandler messageHandler;
 
-    public ServerTeltonikaHandler(final ConcurrentHashMap<String, Channel> existingConnections, final ChannelGroup allChannels, final IModuleLookup<MODULE> moduleLookup, final IMessageHandler messageHandler) {
+    public ServerTeltonikaHandler(final ConcurrentHashMap<String, Channel> existingConnections, final ChannelGroup allChannels, final IModuleLookup moduleLookup, final IMessageHandler messageHandler) {
         this.existingConnections = existingConnections;
         this.allChannels = allChannels;
         this.moduleLookup = moduleLookup;
@@ -111,8 +107,7 @@ public class ServerTeltonikaHandler<MESSAGE extends AbstractAvlMessage, MACHINE 
         final Channel channel = ctx.getChannel();
         final ChannelBuffer msg = ChannelBuffers.buffer(1);
         try {
-            final Optional<MODULE> module = moduleLookup.get(imei);
-            if (module.isPresent()) {
+            if (moduleLookup.isPresent(imei)) {
                 LOGGER.debug("Authorised IMEI [" + imei + "].");
                 msg.writeByte(LOGIN_ALLOW);
                 setImei(imei);

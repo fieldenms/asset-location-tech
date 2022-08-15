@@ -29,6 +29,6 @@ public class DefaultGpsHandlerFactory<MESSAGE extends AbstractAvlMessage, MACHIN
 
     @Override
     public ChannelUpstreamHandler create() {
-        return new ServerTeltonikaHandler<MESSAGE, MACHINE, MODULE>(existingConnections, allChannels, actors, new GpsMessageHandler<MODULE>(actors));
+        return new ServerTeltonikaHandler(existingConnections, allChannels, actors, new GpsMessageHandler<MODULE>(actors));
     }
 }
