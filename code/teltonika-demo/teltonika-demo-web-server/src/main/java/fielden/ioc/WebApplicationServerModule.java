@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.google.inject.Injector;
+import com.google.inject.Scopes;
 import com.google.inject.binder.AnnotatedBindingBuilder;
 
 import fielden.webapp.WebUiConfig;
@@ -12,6 +13,12 @@ import ua.com.fielden.platform.basic.config.IApplicationDomainProvider;
 import ua.com.fielden.platform.basic.config.Workflows;
 import ua.com.fielden.platform.entity.AbstractEntity;
 import ua.com.fielden.platform.entity.query.IFilter;
+import ua.com.fielden.platform.gis.gps.actors.impl.TransporterMachineMonitoringProvider;
+import ua.com.fielden.platform.gis.gps.monitoring.impl.ITransporterMachineMonitoringProvider;
+import ua.com.fielden.platform.reflection.CompanionObjectAutobinder;
+import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
+import ua.com.fielden.platform.sample.domain.TgModule;
 import ua.com.fielden.platform.security.ServerAuthorisationModel;
 import ua.com.fielden.platform.serialisation.api.ISerialisationClassProvider;
 import ua.com.fielden.platform.utils.DefaultDates;
@@ -50,6 +57,14 @@ public class WebApplicationServerModule extends ApplicationServerModule implemen
     protected void configure() {
         super.configure();
         bindWebAppResources(new WebUiConfig(domainName, port, workflow, path));
+        
+        // bind machine monitor provider
+        bindType(ITransporterMachineMonitoringProvider.class).to(TransporterMachineMonitoringProvider.class).in(Scopes.SINGLETON);
+        
+        //bindType(ITgMachine.class).to(TgMachineDao.class);
+        CompanionObjectAutobinder.bindCo(TgMachine.class, binder());
+        CompanionObjectAutobinder.bindCo(TgModule.class, binder());
+        CompanionObjectAutobinder.bindCo(TgMachineModuleAssociation.class, binder());
     }
 
     @Override

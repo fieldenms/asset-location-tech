@@ -1,18 +1,30 @@
 package fielden.webapp;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.restlet.Component;
 
+import com.google.inject.Injector;
+
 import fielden.config.ApplicationDomain;
-import fielden.webapp.WebUiResources;
 import fielden.dbsetup.HibernateSetup;
 import fielden.filter.NoDataFilter;
 import fielden.ioc.WebApplicationServerModule;
 import fielden.serialisation.SerialisationClassProvider;
-
+import ua.com.fielden.platform.gis.gps.actors.AbstractActors;
+import ua.com.fielden.platform.gis.gps.actors.impl.Actors;
+import ua.com.fielden.platform.gis.gps.actors.impl.MachineActor;
+import ua.com.fielden.platform.gis.gps.actors.impl.ModuleActor;
+import ua.com.fielden.platform.gis.gps.actors.impl.ViolatingMessageResolverActor;
+import ua.com.fielden.platform.gis.gps.factory.impl.AbstractTransporterApplicationConfigurationUtil;
 import ua.com.fielden.platform.ioc.ApplicationInjectorFactory;
 import ua.com.fielden.platform.ioc.NewUserEmailNotifierBindingModule;
+import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
+import ua.com.fielden.platform.sample.domain.TgMessage;
+import ua.com.fielden.platform.sample.domain.TgModule;
 import ua.com.fielden.platform.web.app.IWebUiConfig;
 import ua.com.fielden.platform.web.factories.webui.LoginCompleteResetResourceFactory;
 import ua.com.fielden.platform.web.factories.webui.LoginInitiateResetResourceFactory;
@@ -23,8 +35,6 @@ import ua.com.fielden.platform.web.resources.webui.LoginCompleteResetResource;
 import ua.com.fielden.platform.web.resources.webui.LoginInitiateResetResource;
 import ua.com.fielden.platform.web.resources.webui.LoginResource;
 import ua.com.fielden.platform.web.resources.webui.LogoutResource;
-
-import com.google.inject.Injector;
 
 /**
  * Configuration point for Teltonika Demo (Legacy) Web Application.
@@ -79,6 +89,21 @@ public class ApplicationConfiguration extends Component {
                             "Authors",
                             webApp
                             ));
+
+            final boolean emergencyMode = props.getProperty("mode").equalsIgnoreCase("emergency");
+            final Integer windowSize = Integer.valueOf(props.getProperty("windowSize"));
+            final Integer windowSize2 = Integer.valueOf(props.getProperty("windowSize2"));
+            final Integer windowSize3 = Integer.valueOf(props.getProperty("windowSize3"));
+            final Double thresh = Double.valueOf(props.getProperty("averagePacketSizeThreshould"));
+            final Double thresh2 = Double.valueOf(props.getProperty("averagePacketSizeThreshould2"));
+
+            new AbstractTransporterApplicationConfigurationUtil() {
+                @Override
+                protected AbstractActors<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor, ViolatingMessageResolverActor> createActors(final Map<TgMachine, TgMessage> machinesWithLastMessages, final Map<TgModule, List<TgMachineModuleAssociation>> modulesWithAssociations) {
+                    return new Actors(injector, machinesWithLastMessages, modulesWithAssociations, props.getProperty("gps.host"), Integer.valueOf(props.getProperty("gps.port")), emergencyMode, windowSize, windowSize2, windowSize3, thresh, thresh2);
+                }
+            }
+            .startGpsServices(props, injector);
 
         } catch (final Exception e) {
             throw new IllegalStateException(e);

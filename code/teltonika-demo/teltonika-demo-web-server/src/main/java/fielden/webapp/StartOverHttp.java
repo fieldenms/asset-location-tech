@@ -1,13 +1,13 @@
 package fielden.webapp;
 
+import static org.apache.logging.log4j.LogManager.getLogger;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import static org.apache.logging.log4j.LogManager.getLogger;
 import org.apache.logging.log4j.Logger;
-import org.restlet.Component;
 import org.restlet.data.Parameter;
 import org.restlet.data.Protocol;
 import org.restlet.util.Series;
@@ -22,7 +22,7 @@ import ua.com.fielden.platform.entity.AbstractEntity;
  */
 public class StartOverHttp {
 
-	private static final Logger LOGGER = getLogger(StartOverHttp.class);
+    private static final Logger LOGGER = getLogger(StartOverHttp.class);
 
     private StartOverHttp() {}
 
@@ -32,7 +32,17 @@ public class StartOverHttp {
         try (final InputStream st = new FileInputStream(fileName);) {
             props.load(st);
         }
-        
+
+        try {
+            final boolean startupProcessing = props.getProperty("startup.processing").equalsIgnoreCase("true");
+            if (startupProcessing) {
+                StartupSpike.start(props.getProperty("hibernate.connection.url"), props.getProperty("hibernate.connection.username"), props.getProperty("hibernate.connection.password"));
+            }
+        } catch (final Exception e1) {
+            LOGGER.error(e1.getMessage(), e1);
+            throw new RuntimeException(e1);
+        }
+
         /*
          * Let's use non-strict-model verification for instrumented entities in deployment.
          */

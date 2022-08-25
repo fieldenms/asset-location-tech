@@ -8,8 +8,8 @@ import fielden.config.ApplicationDomain;
 import fielden.dbsetup.HibernateSetup;
 import fielden.filter.NoDataFilter;
 import fielden.ioc.ApplicationServerModule;
+import fielden.ioc.DataPopulationApplicationServerModule;
 import fielden.serialisation.SerialisationClassProvider;
-
 import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.entity.query.IdOnlyProxiedEntityTypeCache;
 import ua.com.fielden.platform.entity.query.metadata.DomainMetadata;
@@ -18,7 +18,6 @@ import ua.com.fielden.platform.ioc.NewUserNotifierMockBindingModule;
 import ua.com.fielden.platform.security.NoAuthorisation;
 import ua.com.fielden.platform.test.DbDrivenTestCase;
 import ua.com.fielden.platform.test.IDomainDrivenTestCaseConfiguration;
-
 import ua.com.fielden.platform.utils.DefaultDates;
 import ua.com.fielden.platform.utils.DefaultUniversalConstants;
 
@@ -51,7 +50,7 @@ public final class DataPopulationConfig implements IDomainDrivenTestCaseConfigur
     	    props.setProperty("email.fromAddress", "support@teltonika-demo.com.au");
 
     	    final ApplicationDomain applicationDomainProvider = new ApplicationDomain();
-    	    module = new ApplicationServerModule(
+    	    module = new DataPopulationApplicationServerModule(
     	            HibernateSetup.getHibernateTypes(), 
     	            applicationDomainProvider, 
     	            applicationDomainProvider.domainTypes(), 

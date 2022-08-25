@@ -1,6 +1,8 @@
 package fielden.ioc;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.Map;
@@ -15,12 +17,14 @@ import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 
 import fielden.security.SecurityTokenNodeTransformation;
-
 import ua.com.fielden.platform.basic.config.IApplicationDomainProvider;
 import ua.com.fielden.platform.entity.AbstractEntity;
 import ua.com.fielden.platform.entity.query.IFilter;
 import ua.com.fielden.platform.ioc.BasicWebServerModule;
 import ua.com.fielden.platform.reflection.CompanionObjectAutobinder;
+import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
+import ua.com.fielden.platform.sample.domain.TgModule;
 import ua.com.fielden.platform.security.IAuthorisationModel;
 import ua.com.fielden.platform.security.annotations.SessionCache;
 import ua.com.fielden.platform.security.annotations.SessionHashingKey;
@@ -89,7 +93,8 @@ public class ApplicationServerModule extends BasicWebServerModule {
         bind(IUniversalConstants.class).to(universalConstantsType).in(Scopes.SINGLETON);
 
         // dynamically bind DAO implementations for all companion objects
-        for (final Class<? extends AbstractEntity<?>> entityType : domainTypes) {
+        final List<Class<? extends AbstractEntity<?>>> domainTypesWithoutActorImpl = domainTypes.stream().filter(t -> !asList(TgMachine.class, TgModule.class, TgMachineModuleAssociation.class).contains(t)).collect(toList());
+        for (final Class<? extends AbstractEntity<?>> entityType : domainTypesWithoutActorImpl) {
             CompanionObjectAutobinder.bindCo(entityType, binder());
         }
 

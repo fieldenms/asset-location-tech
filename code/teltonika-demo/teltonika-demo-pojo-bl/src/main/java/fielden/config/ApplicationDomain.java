@@ -10,16 +10,22 @@ import fielden.personnel.Person;
 import ua.com.fielden.platform.basic.config.IApplicationDomainProvider;
 import ua.com.fielden.platform.domain.PlatformDomainTypes;
 import ua.com.fielden.platform.entity.AbstractEntity;
+import ua.com.fielden.platform.sample.domain.TgBadMessage;
 import ua.com.fielden.platform.sample.domain.TgCoordinate;
+import ua.com.fielden.platform.sample.domain.TgEmergencyMessage;
 import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.TgMachineRealtimeMonitorMap;
 import ua.com.fielden.platform.sample.domain.TgMessage;
 import ua.com.fielden.platform.sample.domain.TgMessageMap;
+import ua.com.fielden.platform.sample.domain.TgModule;
 import ua.com.fielden.platform.sample.domain.TgOrgUnit;
 import ua.com.fielden.platform.sample.domain.TgPolygon;
 import ua.com.fielden.platform.sample.domain.TgPolygonMap;
 import ua.com.fielden.platform.sample.domain.TgStop;
 import ua.com.fielden.platform.sample.domain.TgStopMap;
+import ua.com.fielden.platform.sample.domain.TgTempMessage;
+import ua.com.fielden.platform.sample.domain.TgViolatingMessage;
 
 /**
  * A class to register domain entities.
@@ -48,6 +54,14 @@ public class ApplicationDomain implements IApplicationDomainProvider {
         add(TgPolygon.class);
         add(TgCoordinate.class);
         add(TgPolygonMap.class);
+
+        add(TgModule.class);
+        add(TgMachineModuleAssociation.class);
+
+        add(TgTempMessage.class);
+        add(TgEmergencyMessage.class);
+        add(TgViolatingMessage.class);
+        add(TgBadMessage.class);
     }
 
     private static void add(final Class<? extends AbstractEntity<?>> domainType) {
