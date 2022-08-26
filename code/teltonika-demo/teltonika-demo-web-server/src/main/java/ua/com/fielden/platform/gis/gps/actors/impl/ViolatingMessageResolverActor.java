@@ -60,11 +60,11 @@ public class ViolatingMessageResolverActor extends AbstractViolatingMessageResol
         final Session session = getHibUtil().getSessionFactory().getCurrentSession();
         final Transaction tr = session.beginTransaction();
         final PreparedStatement batchInsertStmt = ((SessionImplementor) session).connection().prepareStatement("INSERT INTO VIOLATING_MESSAGES (machine_, "
-                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_) "
-                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_, _id) "
+                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
         for (final TgMessage message : messages) {
-            MachineActor.assignValuesToParamsEmergently(batchInsertStmt, message);
+            MachineActor.assignValuesToParamsEmergently(batchInsertStmt, message, session);
             batchInsertStmt.addBatch();
         }
 
@@ -80,12 +80,12 @@ public class ViolatingMessageResolverActor extends AbstractViolatingMessageResol
         final Session session = getHibUtil().getSessionFactory().getCurrentSession();
         final Transaction tr = session.beginTransaction();
         final PreparedStatement insertStmt = ((SessionImplementor) session).connection().prepareStatement("INSERT INTO MESSAGES (machine_, "
-                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_, distance_, status_) "
-                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_, distance_, status_, _id) "
+                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
         message.setTravelledDistance(AbstractAvlMachineActor.calcDistance(latestPersistedMessage, message));
         message.setStatus(2);
-        MachineActor.assignValuesToParams(insertStmt, message);
+        MachineActor.assignValuesToParams(insertStmt, message, session);
         insertStmt.executeUpdate();
 
         final PreparedStatement updateStmt = ((SessionImplementor) session).connection().prepareStatement("UPDATE MESSAGES SET distance_ = ?, _version = _version + 1 where _id = ?");
@@ -147,9 +147,9 @@ public class ViolatingMessageResolverActor extends AbstractViolatingMessageResol
         final Session session = getHibUtil().getSessionFactory().getCurrentSession();
         final Transaction tr = session.beginTransaction();
         final PreparedStatement batchInsertStmt = ((SessionImplementor) session).connection().prepareStatement("INSERT INTO BAD_MESSAGES (machine_, "
-                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_) "
-                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        MachineActor.assignValuesToParamsTemp(batchInsertStmt, message);
+                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_, _id) "
+                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        MachineActor.assignValuesToParamsTemp(batchInsertStmt, message, session);
         try {
             batchInsertStmt.executeUpdate();
             batchInsertStmt.close();

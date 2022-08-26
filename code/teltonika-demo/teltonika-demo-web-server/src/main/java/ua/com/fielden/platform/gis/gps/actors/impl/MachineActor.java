@@ -1,7 +1,10 @@
 package ua.com.fielden.platform.gis.gps.actors.impl;
 
 import static org.apache.logging.log4j.LogManager.getLogger;
+import static ua.com.fielden.platform.dao.HibernateMappingsGenerator.ID_SEQUENCE_NAME;
+import static ua.com.fielden.platform.utils.DbUtils.nextIdValue;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -101,8 +104,8 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
         final Session session = getHibUtil().getSessionFactory().getCurrentSession();
         final Transaction tr = session.beginTransaction();
         final PreparedStatement batchInsertStmt = ((SessionImplementor) session).connection().prepareStatement("INSERT INTO MESSAGES (machine_, "
-                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_, distance_, status_) "
-                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_, distance_, status_, _id) "
+                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
         int batchId = 0;
         TgMessage currLatestPersistedMessage = latestPersistedMessage;
@@ -112,7 +115,7 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
                 message.setTravelledDistance(calcDistance(currLatestPersistedMessage, message));
             }
 
-            assignValuesToParams(batchInsertStmt, message);
+            assignValuesToParams(batchInsertStmt, message, session);
             batchInsertStmt.addBatch();
 
             currLatestPersistedMessage = message;
@@ -141,11 +144,11 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
         final Session session = getHibUtil().getSessionFactory().getCurrentSession();
         final Transaction tr = session.beginTransaction();
         final PreparedStatement batchInsertStmt = ((SessionImplementor) session).connection().prepareStatement("INSERT INTO EMERGENCY_MESSAGES (machine_, "
-                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_) "
-                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_, _id) "
+                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
         for (final TgMessage message : messages) {
-            assignValuesToParamsEmergently(batchInsertStmt, message);
+            assignValuesToParamsEmergently(batchInsertStmt, message, session);
             batchInsertStmt.addBatch();
         }
 
@@ -179,9 +182,9 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
             final Session session = getHibUtil().getSessionFactory().getCurrentSession();
             final Transaction tr = session.beginTransaction();
             final PreparedStatement batchInsertStmt = ((SessionImplementor) session).connection().prepareStatement("INSERT INTO TEMP_MESSAGES (machine_, "
-                    + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_) "
-                    + "values (?,?,?,?,?,?,?,?,?,?,?,?,?)");
-            assignValuesToParamsTemp(batchInsertStmt, message);
+                    + "gpstime_, packet_, vectorangle_, vectorspeed_, altitude_, visiblesattelites_, x_, y_, powersupplyvoltage_, batteryvoltage_, din1_, gpspower_, _id) "
+                    + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            assignValuesToParamsTemp(batchInsertStmt, message, session);
             try {
                 batchInsertStmt.executeUpdate();
                 batchInsertStmt.close();
@@ -196,7 +199,7 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
         }
     }
 
-    protected static void assignValuesToParamsEmergently(final PreparedStatement batchInsertStmt, final TgMessage message) throws Exception {
+    protected static void assignValuesToParamsEmergently(final PreparedStatement batchInsertStmt, final TgMessage message, final Session session) throws Exception {
         batchInsertStmt.setObject(1, message.getMachine().getId());
         batchInsertStmt.setObject(2, new Timestamp(message.getGpsTime().getTime()));
         batchInsertStmt.setObject(3, new Timestamp(message.getPacketReceived().getTime()));
@@ -210,9 +213,10 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
         batchInsertStmt.setObject(11, message.getBatteryVoltage());
         batchInsertStmt.setObject(12, message.getDin1() ? "Y" : "N");
         batchInsertStmt.setObject(13, message.getGpsPower() ? "Y" : "N");
+        batchInsertStmt.setObject(14, nextIdValue(ID_SEQUENCE_NAME, session));
     }
 
-    protected static void assignValuesToParams(final PreparedStatement batchInsertStmt, final TgMessage message) throws Exception {
+    protected static void assignValuesToParams(final PreparedStatement batchInsertStmt, final TgMessage message, final Session session) throws Exception {
         batchInsertStmt.setObject(1, message.getMachine().getId());
         batchInsertStmt.setObject(2, new Timestamp(message.getGpsTime().getTime()));
         batchInsertStmt.setObject(3, new Timestamp(message.getPacketReceived().getTime()));
@@ -226,11 +230,17 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
         batchInsertStmt.setObject(11, message.getBatteryVoltage());
         batchInsertStmt.setObject(12, message.getDin1() ? "Y" : "N");
         batchInsertStmt.setObject(13, message.getGpsPower() ? "Y" : "N");
-        batchInsertStmt.setObject(14, message.getTravelledDistance());
+        if (message.getTravelledDistance() == null) {
+            LOGGER.warn("empty travelledDistance in " + message);
+            batchInsertStmt.setObject(14, BigDecimal.ZERO);
+        } else {
+            batchInsertStmt.setObject(14, message.getTravelledDistance());
+        }
         batchInsertStmt.setObject(15, message.getStatus());
+        batchInsertStmt.setObject(16, nextIdValue(ID_SEQUENCE_NAME, session));
     }
 
-    protected static void assignValuesToParamsTemp(final PreparedStatement batchInsertStmt, final TgMessage message) throws Exception {
+    protected static void assignValuesToParamsTemp(final PreparedStatement batchInsertStmt, final TgMessage message, final Session session) throws Exception {
         batchInsertStmt.setObject(1, message.getMachine().getId());
         batchInsertStmt.setObject(2, new Timestamp(message.getGpsTime().getTime()));
         batchInsertStmt.setObject(3, new Timestamp(message.getPacketReceived().getTime()));
@@ -244,6 +254,7 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
         batchInsertStmt.setObject(11, message.getBatteryVoltage());
         batchInsertStmt.setObject(12, message.getDin1() ? "Y" : "N");
         batchInsertStmt.setObject(13, message.getGpsPower() ? "Y" : "N");
+        batchInsertStmt.setObject(14, nextIdValue(ID_SEQUENCE_NAME, session));
     }
 
     @Override
