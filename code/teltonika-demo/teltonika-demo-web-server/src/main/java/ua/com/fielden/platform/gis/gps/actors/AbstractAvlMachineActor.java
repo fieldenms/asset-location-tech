@@ -10,6 +10,8 @@ import java.util.LinkedList;
 
 import org.apache.logging.log4j.Logger;
 
+import akka.actor.ActorRef;
+import akka.actor.UntypedActor;
 import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.MapUtils;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
@@ -18,8 +20,6 @@ import ua.com.fielden.platform.gis.gps.MachineServerState;
 import ua.com.fielden.platform.persistence.HibernateUtil;
 import ua.com.fielden.platform.utils.EntityUtils;
 import ua.com.fielden.platform.utils.Pair;
-import akka.actor.ActorRef;
-import akka.actor.UntypedActor;
 
 /**
  * This actor is responsible for messages processing for concrete machine.
@@ -140,10 +140,9 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
                     processLatestGpsMessage(oldLatestGpsMessage, latestGpsMessage);
                 }
 
-                persistTemporarily(packet);
-                //                if (!onStart) { // onStart has been deprecated
-                //                    persistTemporarily(packet);
-                //                }
+                if (!onStart) {
+                    persistTemporarily(packet);
+                }
 
                 incomingPackets.add(packet);
                 if (fillBuffer()) {
@@ -200,10 +199,7 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
                     completeMessage(message);
                 }
                 processSinglePacket(packet, false);
-            } else if (data instanceof LastMessagesRequest) {
-                final LastMessagesRequest lastMessageRequest = (LastMessagesRequest) data;
-                // System.out.println("Запит про останнє повідомлення для машини " + machine + " після " + glm.getAfterDate() + ". Received: " + new Date() + " для актора " + getSelf());
-
+            } else if (data instanceof LastMessagesRequest lastMessageRequest) {
                 if (latestGpsMessage != null
                         && (lastMessageRequest.getAfterDate() == null || latestGpsMessage.getGpsTime().getTime() > lastMessageRequest.getAfterDate().getTime())) {
                     final MESSAGE lastMessage = completeMessageCopy(produceIncompleteLastMessage(latestGpsMessage), latestGpsMessage);
@@ -211,9 +207,7 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
                 } else {
                     getSender().tell(new NoLastMessage(), getSelf());
                 }
-            } else if (data instanceof LastServerStateRequest) {
-                final LastServerStateRequest lastServerStateRequest = (LastServerStateRequest) data;
-
+            } else if (data instanceof LastServerStateRequest lastServerStateRequest) {
                 final MachineServerState latestServerState = extractServerState();
 
                 if (!EntityUtils.equalsEx(latestServerState, lastServerStateRequest.getOldServerState())) {
