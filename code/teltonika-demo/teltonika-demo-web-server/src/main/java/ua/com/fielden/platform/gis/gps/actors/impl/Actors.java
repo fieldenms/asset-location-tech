@@ -72,14 +72,14 @@ public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMac
     protected void nettyServerStartedPostAction() {
         super.nettyServerStartedPostAction();
 
-        try {
-            final String event = "porter-server-started";
-            getLogger().info("Emitting '" + event + "' event...");
-            Runtime.getRuntime().exec("./emit-started-event.sh");
-            getLogger().info("Emitted '" + event + "' event.");
-        } catch (final Exception e) {
-            getLogger().error(e.getMessage(), e);
-            throw new IllegalStateException(e);
-        }
+//        try {
+//            final String event = "porter-server-started";
+//            getLogger().info("Emitting '" + event + "' event...");
+//            Runtime.getRuntime().exec("./emit-started-event.sh");
+//            getLogger().info("Emitted '" + event + "' event.");
+//        } catch (final Exception e) {
+//            getLogger().error(e.getMessage(), e);
+//            throw new IllegalStateException(e);
+//        }
     }
 }
