@@ -1,14 +1,12 @@
 package ua.com.fielden.platform.web.test.server;
 
 import static java.lang.String.format;
-import static ua.com.fielden.platform.web.centre.api.actions.impl.EntityActionBuilder.action;
-import static ua.com.fielden.platform.web.centre.api.context.impl.EntityCentreContextSelector.context;
-import static ua.com.fielden.platform.web.centre.api.crit.defaults.mnemonics.construction.options.DefaultValueOptions.*;
 import static ua.com.fielden.platform.web.PrefDim.mkDim;
 import static ua.com.fielden.platform.web.action.StandardMastersWebUiConfig.MASTER_ACTION_SPECIFICATION;
-import java.util.Optional;
+import static ua.com.fielden.platform.web.centre.api.actions.impl.EntityActionBuilder.action;
+import static ua.com.fielden.platform.web.centre.api.context.impl.EntityCentreContextSelector.context;
 
-import org.joda.time.DateTime;
+import java.util.Optional;
 
 import com.google.inject.Injector;
 
@@ -18,7 +16,6 @@ import ua.com.fielden.platform.sample.domain.TgMessage;
 import ua.com.fielden.platform.sample.domain.TgMessageMap;
 import ua.com.fielden.platform.sample.domain.TgMessageProducer;
 import ua.com.fielden.platform.ui.menu.sample.MiTgMessage;
-import ua.com.fielden.platform.utils.EntityUtils;
 import ua.com.fielden.platform.web.app.config.IWebUiBuilder;
 import ua.com.fielden.platform.web.centre.EntityCentre;
 import ua.com.fielden.platform.web.centre.api.EntityCentreConfig;
@@ -89,7 +86,7 @@ public class TgMessageWebUiConfig {
      */
     private EntityCentre<TgMessage> createCentre(final Injector injector) {
         final EntityCentreConfig<TgMessage> centre = EntityCentreBuilder.centreFor(TgMessage.class)
-                .runAutomatically()
+                //.runAutomatically()
                 .addTopAction(action(EntityNewAction.class).
                         withContext(context().withSelectionCrit().build()).
                         icon("add-circle-outline").
@@ -98,8 +95,8 @@ public class TgMessageWebUiConfig {
                         shortcut("alt+n").
                         withNoParentCentreRefresh().
                         build())
-                .addCrit("machine").asMulti().autocompleter(TgMachine.class).setDefaultValue(multi().string().setValues("07101ТА").value()).also()
-                .addCrit("gpsTime").asRange().date().setDefaultValue(range().date().setFromValue(new DateTime(2000, 1, 1, 0, 0).toDate()).setToValue(new DateTime(2014, 5, 26, 23, 59).toDate()).value())
+                .addCrit("machine").asMulti().autocompleter(TgMachine.class)/*.setDefaultValue(multi().string().setValues("07101ТА").value())*/.also()
+                .addCrit("gpsTime").asRange().date()/*.setDefaultValue(range().date().setFromValue(new DateTime(2000, 1, 1, 0, 0).toDate()).setToValue(new DateTime(2014, 5, 26, 23, 59).toDate()).value())*/
                 .setLayoutFor(Device.DESKTOP, Optional.empty(), "[['center-justified', 'start', ['margin-right: 40px', 'flex'], ['flex']]]")
                 .withScrollingConfig(ScrollConfig.configScroll().withFixedHeader().withFixedSummary().done())
                 .setPageCapacity(10000)
@@ -123,8 +120,37 @@ public class TgMessageWebUiConfig {
                 .also()
                 .addProp("din1")
                     .width(90)
+                .also()
+                .addProp("x")
+                    .width(90)
+                .also()
+                .addProp("y")
+                    .width(90)
+                .also()
+                .addProp("altitude")
+                    .width(90)
+                .also()
+                .addProp("vectorAngle")
+                    .width(90)
+                .also()
+                .addProp("visibleSattelites")
+                    .width(90)
+                .also()
+                .addProp("powerSupplyVoltage")
+                    .width(90)
+                .also()
+                .addProp("batteryVoltage")
+                    .width(90)
+                .also()
+                .addProp("gpsPower")
+                    .width(90)
+                .also()
+                .addProp("packetReceived")
+                    .width(90)
+                    //status
+                
                 .setRenderingCustomiser(TgMessageRenderingCustomiser.class)
-                .setFetchProvider(EntityUtils.fetch(TgMessage.class).with("x", "y", "altitude", "vectorAngle"))
+                //.setFetchProvider(EntityUtils.fetch(TgMessage.class).with("x", "y", "altitude", "vectorAngle"))
                 .addInsertionPoint(
                     action(TgMessageMap.class)
                             .withContext(context().withSelectionCrit().build())
