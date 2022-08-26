@@ -52,6 +52,7 @@ public class TgMachineModuleAssociationDao extends CommonEntityDao<TgMachineModu
         defaultDelete(model, paramValues);
     }
 
+    @Override
     @SessionRequired
     public TgMachineModuleAssociation regularSave(final TgMachineModuleAssociation entity) {
         return super.save(entity);

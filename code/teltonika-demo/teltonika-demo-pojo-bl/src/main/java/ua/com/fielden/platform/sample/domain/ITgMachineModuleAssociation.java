@@ -10,4 +10,6 @@ import ua.com.fielden.platform.dao.IEntityDao;
  */
 public interface ITgMachineModuleAssociation extends IEntityDao<TgMachineModuleAssociation> {
 
+    TgMachineModuleAssociation regularSave(final TgMachineModuleAssociation entity);
+
 }
