@@ -16,7 +16,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.logging.InternalLoggerFactory;
-import org.jboss.netty.logging.Log4JLoggerFactory;
+import org.jboss.netty.logging.Slf4JLoggerFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 
@@ -375,7 +375,8 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      */
     protected void startNettyGpsServer() {
         //////// start netty-based GPS server
-        InternalLoggerFactory.setDefaultFactory(new Log4JLoggerFactory());
+        //InternalLoggerFactory.setDefaultFactory(new Log4JLoggerFactory());
+        InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
         final ChannelGroup allChannels = new DefaultChannelGroup("gps-server");
         final ConcurrentHashMap<String, Channel> existingConnections = new ConcurrentHashMap<>();
         final ServerTeltonika serverTeltonika = new ServerTeltonika(gpsHost, gpsPort, existingConnections, allChannels, new DefaultGpsHandlerFactory<MESSAGE, MACHINE, MODULE, ASSOCIATION, MACHINE_ACTOR, MODULE_ACTOR, VIO_RESOLVER_ACTOR>(existingConnections, allChannels, this)) {
