@@ -82,21 +82,28 @@ public class PopulateDb extends DomainDrivenDataPopulation {
         setupPerson(User.system_users.SU, "fielden");
 
         LOGGER.info("\tPopulating testing machine + module...");
-        final TgMachine machine00 = new_(TgMachine.class, "00000001");
-        machine00.setDesc("Machine for testing with 867648048071573 module.");
-        final TgMachine machine0 = save(machine00);
-        final TgModule module00 = new_(TgModule.class, "867648048071573");
-        module00
+        final TgMachine machine00 = save(new_(TgMachine.class, "00000001").setDesc("Machine for testing with 867648048071573 module."));
+        final TgModule module00 = save(new_(TgModule.class, "867648048071573")
             .setSerialNo(999)
             .setGpsFirmware("1.0")
             .setHwVersion("1.0")
             .setImletVersion("1.0")
-            .setIdentifier("id");
-        module00.setDesc("Module 867648048071573 for testing.");
-        final TgModule module0 = save(module00);
-        final TgMachineModuleAssociation assoc00 = new_composite(TgMachineModuleAssociation.class, machine0, module0, new DateTime().withTimeAtStartOfDay().toDate());
+            .setIdentifier("id")
+            .setDesc("Module 867648048071573 for testing."));
+        final TgMachineModuleAssociation assoc00 = new_composite(TgMachineModuleAssociation.class, machine00, module00, new DateTime().withTimeAtStartOfDay().toDate());
         getInstance(ITgMachineModuleAssociation.class).regularSave(assoc00);
         //save(assoc00);
+        final TgMachine machine01 = save(new_(TgMachine.class, "00000002").setDesc("A vehicle for testing with 860264054087367 module."));
+        final TgModule module01 = save(new_(TgModule.class, "860264054087367")
+            .setSerialNo(999)
+            .setGpsFirmware("1.0")
+            .setHwVersion("1.0")
+            .setImletVersion("1.0")
+            .setIdentifier("id")
+            .setDesc("FMC001 860264054087367 for testing."));
+        final TgMachineModuleAssociation assoc01 = new_composite(TgMachineModuleAssociation.class, machine01, module01, new DateTime().withTimeAtStartOfDay().toDate());
+        getInstance(ITgMachineModuleAssociation.class).regularSave(assoc01);
+
         
 //        LOGGER.info("\tPopulating messages...");
 //        final Map<String, TgMachine> machines = new HashMap<>();
