@@ -20,11 +20,11 @@ import ua.com.fielden.platform.entity.AbstractEntity;
  * @author Generated
  *
  */
-public class StartOverHttp {
+public class DemoStartOverHttp {
 
-    private static final Logger LOGGER = getLogger(StartOverHttp.class);
+    private static final Logger LOGGER = getLogger(DemoStartOverHttp.class);
 
-    private StartOverHttp() {}
+    private DemoStartOverHttp() {}
 
     public static void main(final String[] args) throws IOException {
         final String fileName = args.length == 1 ? args[0] : "application.properties";
