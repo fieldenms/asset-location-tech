@@ -41,6 +41,10 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
         msg.setBatteryVoltage(locateBatteryVot(avl.getIo()));
         msg.setGpsPower(locateGpsPower(avl.getIo()));
         msg.setPacketReceived(packetReceived);
+        msg.setIgnition(locateIgnition(avl.getIo()));
+        msg.setTotalOdometer(locateTotalOdometer(avl.getIo()));
+        msg.setTripOdometer(locateTripOdometer(avl.getIo()));
+        msg.setTrip(locateTrip(avl.getIo()));
 
         return msg;
     }
@@ -105,9 +109,45 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
     }
 
     private static boolean locateGpsPower(final AvlIoElement io) {
-        for (int index = 0; index < io.shortIo.length; index++) {
-            if (io.shortIo[index].ioId == AvlIoCodes.GPS_POWER.id) {
-                return io.shortIo[index].ioValue == 1;
+        for (int index = 0; index < io.byteIo.length; index++) {
+            if (io.byteIo[index].ioId == AvlIoCodes.GPS_POWER.id) {
+                return io.byteIo[index].ioValue == 1;
+            }
+        }
+        return false;
+    }
+
+    private static boolean locateIgnition(final AvlIoElement io) {
+        for (int index = 0; index < io.byteIo.length; index++) {
+            if (io.byteIo[index].ioId == AvlIoCodes.IGNITION.id) {
+                return io.byteIo[index].ioValue == 1;
+            }
+        }
+        return false;
+    }
+
+    private static Integer locateTotalOdometer(final AvlIoElement io) {
+        for (int index = 0; index < io.intIo.length; index++) {
+            if (io.intIo[index].ioId == AvlIoCodes.TOTAL_ODOMETER.id) {
+                return io.intIo[index].ioValue;
+            }
+        }
+        return null;
+    }
+
+    private static Integer locateTripOdometer(final AvlIoElement io) {
+        for (int index = 0; index < io.intIo.length; index++) {
+            if (io.intIo[index].ioId == AvlIoCodes.TRIP_ODOMETER.id) {
+                return io.intIo[index].ioValue;
+            }
+        }
+        return null;
+    }
+
+    private static boolean locateTrip(final AvlIoElement io) {
+        for (int index = 0; index < io.byteIo.length; index++) {
+            if (io.byteIo[index].ioId == AvlIoCodes.TRIP.id) {
+                return io.byteIo[index].ioValue == 1;
             }
         }
         return false;

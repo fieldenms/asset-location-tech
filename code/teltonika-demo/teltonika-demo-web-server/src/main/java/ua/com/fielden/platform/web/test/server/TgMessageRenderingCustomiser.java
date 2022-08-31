@@ -18,6 +18,10 @@ public class TgMessageRenderingCustomiser implements IRenderingCustomiser<Map<St
             add("vectorSpeed");
             add("travelledDistance");
             add("din1");
+            add("ignition");
+            add("totalOdometer");
+            add("tripOdometer");
+            add("trip");
         }
     };
 

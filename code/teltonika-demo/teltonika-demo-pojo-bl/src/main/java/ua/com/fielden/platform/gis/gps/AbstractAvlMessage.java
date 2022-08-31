@@ -88,7 +88,7 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
 
     @IsProperty
     @MapTo
-    @Title(value = "GPS напруга?", desc = "Вказує, чи GPS модуль живився від зовнішнього джерела (не від внутрішнього акумулятора) у момент генерування повідомлення.")
+    @Title(value = "GNSS ON with fix?", desc = "Indicates whether GNSS module is ON with coordinates fix in place.")
     private boolean gpsPower;
 
     @IsProperty(precision = 18, scale = 2)
@@ -110,6 +110,66 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
     @Ignore
     @Invisible
     private Integer status;
+
+    @IsProperty
+    @MapTo
+    @Title("Ignition?")
+    private boolean ignition;
+
+    @IsProperty
+    @MapTo
+    @Title(value = "Total Odometer", desc = "Total odometer reading at the time of the message, in meters.")
+    private Integer totalOdometer;
+
+    @IsProperty
+    @MapTo
+    @Title(value = "Trip Odometer", desc = "Difference between Total Odometer reading at the time of the message and Total Odometer from a) previous message or b) trip start message, in meters.")
+    private Integer tripOdometer;
+
+    @IsProperty
+    @MapTo
+    @Title("Trip?")
+    private boolean trip;
+
+    @Observable
+    public AbstractAvlMessage setTrip(final boolean value) {
+        this.trip = value;
+        return this;
+    }
+
+    public boolean isTrip() {
+        return trip;
+    }
+
+    @Observable
+    public AbstractAvlMessage setTripOdometer(final Integer value) {
+        this.tripOdometer = value;
+        return this;
+    }
+
+    public Integer getTripOdometer() {
+        return tripOdometer;
+    }
+
+    @Observable
+    public AbstractAvlMessage setTotalOdometer(final Integer value) {
+        this.totalOdometer = value;
+        return this;
+    }
+
+    public Integer getTotalOdometer() {
+        return totalOdometer;
+    }
+
+    @Observable
+    public AbstractAvlMessage setIgnition(final boolean ignition) {
+        this.ignition = ignition;
+        return this;
+    }
+
+    public boolean getIgnition() {
+        return ignition;
+    }
 
     @Observable
     public AbstractAvlMessage setStatus(final Integer status) {

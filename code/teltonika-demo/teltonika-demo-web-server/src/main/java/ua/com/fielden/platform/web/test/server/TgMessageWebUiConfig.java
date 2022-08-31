@@ -148,6 +148,18 @@ public class TgMessageWebUiConfig {
                 .addProp("packetReceived")
                     .width(90)
                     //status
+                .also()
+                .addProp("ignition")
+                    .width(90)
+                .also()
+                .addProp("totalOdometer")
+                    .width(90)
+                .also()
+                .addProp("tripOdometer")
+                    .width(90)
+                .also()
+                .addProp("trip")
+                    .width(90)
                 
                 .setRenderingCustomiser(TgMessageRenderingCustomiser.class)
                 //.setFetchProvider(EntityUtils.fetch(TgMessage.class).with("x", "y", "altitude", "vectorAngle"))

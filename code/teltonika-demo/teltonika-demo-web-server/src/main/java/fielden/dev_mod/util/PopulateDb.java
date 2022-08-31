@@ -64,7 +64,7 @@ public class PopulateDb extends DomainDrivenDataPopulation {
 
         // use TG DDL generation or
         // Hibernate DDL generation final List<String> createDdl = DbUtils.generateSchemaByHibernate()
-        final List<String> createDdl = config.getDomainMetadata().generateDatabaseDdl(dialect);
+        final List<String> createDdl = config.getDomainMetadata().generateDatabaseDdl(dialect); // , TgMessage.class); createDdl.stream().forEach(System.out::println); // GenDdl-like; comment following lines
         final List<String> ddl = dialect instanceof H2Dialect ?
                                  DbUtils.prependDropDdlForH2(createDdl) :
                                  DbUtils.prependDropDdlForSqlServer(createDdl);
