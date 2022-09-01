@@ -168,14 +168,14 @@ public class TgMessageWebUiConfig {
                             .withContext(context().withSelectionCrit().build())
                             .icon("credit-card")
                             .shortDesc("TgMessage map")
-                            .prefDimForView(mkDim("'auto'", "'400px'"))
+                            .prefDimForView(mkDim("'auto'", "'800px'"))
                             .withNoParentCentreRefresh()
                             .build(),
                     InsertionPoints.BOTTOM
                 )
                 .build();
 
-        final EntityCentre<TgMessage> entityCentre = new EntityCentre<>(MiTgMessage.class, "MiTgMessage", centre, injector, null);
+        final EntityCentre<TgMessage> entityCentre = new EntityCentre<>(MiTgMessage.class, centre, injector);
         return entityCentre;
     }
     

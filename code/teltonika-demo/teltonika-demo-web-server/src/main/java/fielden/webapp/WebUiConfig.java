@@ -115,7 +115,7 @@ public class WebUiConfig extends AbstractWebUiConfig {
                     .addMenuItem("User Roles").description("User roles centre").centre(userRoleWebUiConfig.centre).done()
                     .addMenuItem("Security Matrix").description("Security Matrix is used to manage application authorisations for User Roles.").master(securityConfig.master).done()
                 .done()
-                .addMenuItem("GPS-треки").description(
+                .addMenuItem("GPS-tracks").description(
                         "Перегляд, моніторинг та аналіз GPS повідомлень (у вигляді треків), отриманих від GPS-модулів, які встановлені на машини компанії." + //
                         "Є можливість переглядати обчислений кілометраж у вигляді графіка і / або таблиці."
                 ).icon("icons:cloud-queue").centre(configApp().getCentre(MiTgMessage.class).get()).done()

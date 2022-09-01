@@ -21,7 +21,7 @@ public class TgMessage extends AbstractAvlMessage {
 
     @IsProperty
     @MapTo
-    @Title(value = "Машина", desc = "Машина, з якої було отримано повідомлення")
+    @Title(value = "Vehicle", desc = "Машина, з якої було отримано повідомлення")
     @CompositeKeyMember(1)
     private TgMachine machine;
 

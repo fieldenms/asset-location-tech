@@ -27,7 +27,7 @@ import ua.com.fielden.platform.entity.annotation.TransactionEntity;
  * 
  */
 @EntityTitle(value = "GPS повідомлення", desc = "Повідомлення з GPS модуля")
-@KeyTitle(value = "GPS повідомлення", desc = "Повідомлення з GPS модуля")
+@KeyTitle(value = "GPS message", desc = "Повідомлення з GPS модуля")
 @KeyType(DynamicEntityKey.class)
 @MapEntityTo("MESSAGES")
 // TODO do not forget to provide companion object in its descendants -- @CompanionObject(IMessage.class)
@@ -37,53 +37,53 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
 
     @IsProperty
     @MapTo
-    @Title(value = "GPS час", desc = "Час, коли було згенеровано повідомлення")
+    @Title(value = "GPS time", desc = "Час, коли було згенеровано повідомлення")
     @CompositeKeyMember(2)
     private Date gpsTime;
 
     @IsProperty(precision = 18, scale = 10)
     @MapTo
-    @Title(value = "X-координата", desc = "Значення довготи")
+    @Title(value = "Longitude", desc = "Значення довготи")
     private BigDecimal x;
 
     @IsProperty(precision = 18, scale = 10)
     @MapTo
-    @Title(value = "Y-координата", desc = "Значення широти")
+    @Title(value = "Latitude", desc = "Значення широти")
     private BigDecimal y;
 
     @IsProperty
     @MapTo
-    @Title(value = "Кут", desc = "Кут повороту машини по відношенню до півночі.")
+    @Title(value = "Angle", desc = "Кут повороту машини по відношенню до півночі.")
     private Integer vectorAngle;
 
     @IsProperty
     @MapTo
-    @Title(value = "Швидкість", desc = "Точкова швидкість руху машину")
+    @Title(value = "Speed", desc = "Точкова швидкість руху машину")
     private Integer vectorSpeed;
 
     @IsProperty
     @MapTo
-    @Title(value = "Висота", desc = "Висота над рівнем моря.")
+    @Title(value = "Altitude", desc = "Висота над рівнем моря.")
     private Integer altitude;
 
     @IsProperty
     @MapTo
-    @Title(value = "К-сть супутників", desc = "Кількість супутників, видимих у момент генерування повідомлення.")
+    @Title(value = "Sattelites", desc = "Кількість супутників, видимих у момент генерування повідомлення.")
     private Integer visibleSattelites;
 
     @IsProperty
     @MapTo
-    @Title(value = "Запалення?", desc = "Вказує, чи двигун працював у момент генерування повідомлення.")
+    @Title(value = "Din1", desc = "Вказує, чи двигун працював у момент генерування повідомлення.")
     private boolean din1;
 
     @IsProperty(precision = 18, scale = 2)
     @MapTo
-    @Title(value = "Вольтаж БЖ", desc = "Вольтаж блоку живлення.")
+    @Title(value = "Vehicle Battery Voltage", desc = "Вольтаж блоку живлення.")
     private BigDecimal powerSupplyVoltage;
 
     @IsProperty(precision = 18, scale = 2)
     @MapTo
-    @Title(value = "Вольтаж акумулятора", desc = "Вольтаж акумулятора.")
+    @Title(value = "Battery Voltage", desc = "Вольтаж акумулятора.")
     private BigDecimal batteryVoltage;
 
     @IsProperty
@@ -96,7 +96,7 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
     // TODO
     @Readonly
     @Required
-    @Title(value = "Відстань", desc = "Відстань в метрах, яку було пройдено машиною з моменту отримання попереднього повідомлення.")
+    @Title(value = "Travelled Distance", desc = "Відстань в метрах, яку було пройдено машиною з моменту отримання попереднього повідомлення.")
     private BigDecimal travelledDistance;
 
     @IsProperty
