@@ -131,7 +131,7 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
     @Calculated
     @Title(value = "In Progress?", desc = "Indicates whether the journey is progress and i.e. not yet completed.")
     private boolean active;
-    protected static final ExpressionModel active_ = expr().caseWhen().allOfProps("startDate", "finishDate").ne().val(null).then().val(false).otherwise().val(true).endAsBool().model();
+    protected static final ExpressionModel active_ = expr().caseWhen().allOfProps("startDate", "finishDate").isNotNull().then().val(false).otherwise().val(true).endAsBool().model();
 
     @IsProperty(precision = 18, scale = 10)
     @MapTo

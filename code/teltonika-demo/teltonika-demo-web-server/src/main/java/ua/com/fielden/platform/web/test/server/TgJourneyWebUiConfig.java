@@ -100,7 +100,7 @@ public class TgJourneyWebUiConfig {
                 .addEditableProp("driver").minWidth(100).also()
                 .addEditableProp("purpose").minWidth(100).also()
                 .addEditableProp("overNightStay").minWidth(100).also()
-                //.addProp("active").minWidth(100).also()
+                .addProp("active").minWidth(100).also()
                 .addProp("startLatitude").minWidth(100).also()
                 .addProp("startLongitude").minWidth(100).also()
                 .addProp("finishLatitude").minWidth(100).also()
