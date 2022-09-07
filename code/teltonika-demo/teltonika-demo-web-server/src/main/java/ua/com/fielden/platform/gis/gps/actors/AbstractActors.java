@@ -43,6 +43,9 @@ import ua.com.fielden.platform.gis.gps.IModuleLookup;
 import ua.com.fielden.platform.gis.gps.MachineServerState;
 import ua.com.fielden.platform.gis.gps.factory.DefaultGpsHandlerFactory;
 import ua.com.fielden.platform.gis.gps.server.ServerTeltonika;
+import ua.com.fielden.platform.security.user.IUser;
+import ua.com.fielden.platform.security.user.IUserProvider;
+import ua.com.fielden.platform.security.user.User;
 import ua.com.fielden.platform.utils.Pair;
 
 /**
@@ -77,6 +80,8 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
     private final int windowSize3;
     private final double averagePacketSizeThreshould;
     private final double averagePacketSizeThreshould2;
+    protected final IUserProvider userProvider;
+    protected final IUser userCo;
 
     /**
      * Creates an actor system responsible for processing messages and getting efficiently a state from it (e.g. last machine message).
@@ -86,6 +91,8 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
         this.gpsHost = gpsHost;
         this.gpsPort = gpsPort;
         this.injector = injector;
+        this.userProvider = injector.getInstance(IUserProvider.class);
+        this.userCo = injector.getInstance(IUser.class);
 
         this.system = ActorSystem.create("actors");
 
@@ -276,6 +283,9 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      * @param data
      */
     public void dataReceived(final String imei, final AvlData[] data) {
+        if (userProvider.getUser() == null) {
+            userProvider.setUsername(User.system_users.SU.toString(), userCo);
+        }
         final ActorRef actor = getModuleActor(imei);
         if (actor != null) { // the module is registered
             actor.tell(data, null);
