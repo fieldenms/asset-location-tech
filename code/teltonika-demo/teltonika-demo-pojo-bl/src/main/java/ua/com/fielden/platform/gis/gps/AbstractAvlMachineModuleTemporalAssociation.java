@@ -91,7 +91,7 @@ public abstract class AbstractAvlMachineModuleTemporalAssociation<MESSAGE extend
     }
 
     public User getChangedBy() {
-        return createdBy;
+        return changedBy;
     }
 
     @Observable
