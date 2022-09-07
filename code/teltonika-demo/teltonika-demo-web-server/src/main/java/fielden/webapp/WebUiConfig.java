@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import fielden.config.Modules;
 import fielden.config.personnel.PersonWebUiConfig;
+import fielden.main.menu.personnel.MiTgJourney;
 import fielden.personnel.Person;
 import ua.com.fielden.platform.basic.config.Workflows;
 import ua.com.fielden.platform.entity.AbstractEntity;
@@ -21,6 +22,7 @@ import ua.com.fielden.platform.web.resources.webui.AbstractWebUiConfig;
 import ua.com.fielden.platform.web.resources.webui.SecurityMatrixWebUiConfig;
 import ua.com.fielden.platform.web.resources.webui.UserRoleWebUiConfig;
 import ua.com.fielden.platform.web.resources.webui.UserWebUiConfig;
+import ua.com.fielden.platform.web.test.server.TgJourneyWebUiConfig;
 import ua.com.fielden.platform.web.test.server.TgMachineRealtimeMonitorWebUiConfig;
 import ua.com.fielden.platform.web.test.server.TgMessageWebUiConfig;
 import ua.com.fielden.platform.web.test.server.TgPolygonWebUiConfig;
@@ -99,6 +101,7 @@ public class WebUiConfig extends AbstractWebUiConfig {
         TgStopWebUiConfig.register(injector(), configApp());
         TgMachineRealtimeMonitorWebUiConfig.register(injector(), configApp());
         TgPolygonWebUiConfig.register(injector(), configApp());
+        TgJourneyWebUiConfig.register(injector(), configApp());
 
         // Configure application menu
         configDesktopMainMenu()
@@ -115,6 +118,7 @@ public class WebUiConfig extends AbstractWebUiConfig {
                     .addMenuItem("User Roles").description("User roles centre").centre(userRoleWebUiConfig.centre).done()
                     .addMenuItem("Security Matrix").description("Security Matrix is used to manage application authorisations for User Roles.").master(securityConfig.master).done()
                 .done()
+                .addMenuItem("Journey").description("Journeys.").icon("icons:cloud-queue").centre(configApp().getCentre(MiTgJourney.class).get()).done()
                 .addMenuItem("GPS-tracks").description(
                         "Перегляд, моніторинг та аналіз GPS повідомлень (у вигляді треків), отриманих від GPS-модулів, які встановлені на машини компанії." + //
                         "Є можливість переглядати обчислений кілометраж у вигляді графіка і / або таблиці."

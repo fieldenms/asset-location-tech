@@ -13,7 +13,11 @@ import ua.com.fielden.platform.entity.AbstractEntity;
 import ua.com.fielden.platform.sample.domain.TgBadMessage;
 import ua.com.fielden.platform.sample.domain.TgCoordinate;
 import ua.com.fielden.platform.sample.domain.TgEmergencyMessage;
+import ua.com.fielden.platform.sample.domain.TgJourney;
+import ua.com.fielden.platform.sample.domain.TgJourneyOverNightStay;
+import ua.com.fielden.platform.sample.domain.TgJourneyPurpose;
 import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociation;
 import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.TgMachineRealtimeMonitorMap;
 import ua.com.fielden.platform.sample.domain.TgMessage;
@@ -62,6 +66,11 @@ public class ApplicationDomain implements IApplicationDomainProvider {
         add(TgEmergencyMessage.class);
         add(TgViolatingMessage.class);
         add(TgBadMessage.class);
+
+        add(TgJourney.class);
+        add(TgJourneyPurpose.class);
+        add(TgJourneyOverNightStay.class);
+        add(TgMachineDriverAssociation.class);
     }
 
     private static void add(final Class<? extends AbstractEntity<?>> domainType) {

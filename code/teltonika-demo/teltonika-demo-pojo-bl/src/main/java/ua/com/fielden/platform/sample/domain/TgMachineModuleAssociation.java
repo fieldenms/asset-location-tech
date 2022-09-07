@@ -6,6 +6,7 @@ import ua.com.fielden.platform.entity.annotation.IsProperty;
 import ua.com.fielden.platform.entity.annotation.MapEntityTo;
 import ua.com.fielden.platform.entity.annotation.MapTo;
 import ua.com.fielden.platform.entity.annotation.Observable;
+import ua.com.fielden.platform.entity.annotation.Required;
 import ua.com.fielden.platform.entity.annotation.Title;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachineModuleTemporalAssociation;
 
@@ -23,6 +24,22 @@ public class TgMachineModuleAssociation extends AbstractAvlMachineModuleTemporal
     @Title(value = "Модуль", desc = "Модуль, асоційований із машиною")
     @CompositeKeyMember(2)
     private TgModule module;
+
+    @IsProperty
+    @MapTo
+    @Title(value = "Init Odometer", desc = "Extended_description")
+    @Required
+    private Integer initOdometer;
+
+    @Observable
+    public TgMachineModuleAssociation setInitOdometer(final Integer initOdometer) {
+        this.initOdometer = initOdometer;
+        return this;
+    }
+
+    public Integer getInitOdometer() {
+        return initOdometer;
+    }
 
     @Override
     public TgModule getModule() {

@@ -2,6 +2,7 @@ package ua.com.fielden.platform.gis.gps.actors.impl;
 
 import static org.apache.logging.log4j.LogManager.getLogger;
 import static ua.com.fielden.platform.dao.HibernateMappingsGenerator.ID_SEQUENCE_NAME;
+import static ua.com.fielden.platform.gis.gps.actors.impl.JourneyProcessor.createJourneysFrom;
 import static ua.com.fielden.platform.utils.DbUtils.nextIdValue;
 
 import java.math.BigDecimal;
@@ -24,8 +25,11 @@ import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.gps.actors.AbstractAvlMachineActor;
 import ua.com.fielden.platform.gis.gps.actors.Packet;
 import ua.com.fielden.platform.persistence.HibernateUtil;
+import ua.com.fielden.platform.sample.domain.ITgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.ITgMessage;
+import ua.com.fielden.platform.sample.domain.TgJourneyCo;
 import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociationCo;
 import ua.com.fielden.platform.sample.domain.TgMessage;
 
 /**
@@ -38,10 +42,16 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
     private final Logger logger = getLogger(MachineActor.class);
 
     private final ITgMessage coMessage;
+    private final TgJourneyCo journeyCo;
+    private final ITgMachineModuleAssociation machineModuleAssociationCo;
+    private final TgMachineDriverAssociationCo machineDriverAssociationCo;
 
-    public MachineActor(final EntityFactory factory, final TgMachine machine, final TgMessage lastMessage, final HibernateUtil hibUtil, final ITgMessage coMessage, final ActorRef machinesCounterRef, final ActorRef violatingMessageResolverRef, final boolean emergencyMode, final int windowSize, final int windowSize2, final int windowSize3, final double averagePacketSizeThreshould, final double averagePacketSizeThreshould2) {
+    public MachineActor(final EntityFactory factory, final TgMachine machine, final TgMessage lastMessage, final HibernateUtil hibUtil, final ITgMessage coMessage, final TgJourneyCo journeyCo, final ITgMachineModuleAssociation machineModuleAssociationCo, final TgMachineDriverAssociationCo machineDriverAssociationCo, final ActorRef machinesCounterRef, final ActorRef violatingMessageResolverRef, final boolean emergencyMode, final int windowSize, final int windowSize2, final int windowSize3, final double averagePacketSizeThreshould, final double averagePacketSizeThreshould2) {
         super(factory, machine, lastMessage, hibUtil, machinesCounterRef, violatingMessageResolverRef, emergencyMode, windowSize, windowSize2, windowSize3, averagePacketSizeThreshould, averagePacketSizeThreshould2);
         this.coMessage = coMessage;
+        this.journeyCo = journeyCo;
+        this.machineModuleAssociationCo = machineModuleAssociationCo;
+        this.machineDriverAssociationCo = machineDriverAssociationCo;
 
         if (!isEmergencyMode()) {
             try {
@@ -140,7 +150,10 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
         deleteFromTemporal(messages, ((SessionImplementor) session).connection());
 
         tr.commit();
+
+        createJourneysFrom(messages, getMachine(), journeyCo, machineModuleAssociationCo, machineDriverAssociationCo);
     }
+
 
     @Override
     protected void persistEmergently(final Collection<TgMessage> messages) throws Exception {
