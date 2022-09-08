@@ -12,7 +12,7 @@ import ua.com.fielden.platform.utils.EntityUtils;
  */
 public interface TgJourneyCo extends IEntityDao<TgJourney> {
 
-    static final IFetchProvider<TgJourney> FETCH_PROVIDER = EntityUtils.fetch(TgJourney.class).with(
+    static final IFetchProvider<TgJourney> FETCH_PROVIDER = EntityUtils.fetch(TgJourney.class, true).with(
         "desc",
         "machine",
         "startDate",
@@ -32,7 +32,10 @@ public interface TgJourneyCo extends IEntityDao<TgJourney> {
         "startLatitude",
         "startLongitude",
         "finishLatitude",
-        "finishLongitude"
+        "finishLongitude",
+        "preliminaryFinish",
+        "latestDate",
+        "earliestDate"
     );
 
 }

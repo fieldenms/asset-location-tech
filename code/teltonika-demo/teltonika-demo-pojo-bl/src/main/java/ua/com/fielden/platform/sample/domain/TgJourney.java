@@ -131,7 +131,7 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
     @Calculated
     @Title(value = "In Progress?", desc = "Indicates whether the journey is progress and i.e. not yet completed.")
     private boolean active;
-    protected static final ExpressionModel active_ = expr().caseWhen().allOfProps("startDate", "finishDate").isNotNull().then().val(false).otherwise().val(true).endAsBool().model();
+    protected static final ExpressionModel active_ = expr().caseWhen().allOfProps("startDate", "finishDate").isNotNull().then().prop("preliminaryFinish").otherwise().val(true).endAsBool().model();
 
     @IsProperty(precision = 18, scale = 10)
     @MapTo
@@ -148,6 +148,53 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
     @IsProperty(precision = 18, scale = 10)
     @MapTo
     private BigDecimal finishLongitude;
+
+    @IsProperty
+    @MapTo
+    @Title(value = "Preliminary Finish?", desc = "Indicates whether existing Finish Date is a preliminary finish of the Journey i.e. needs additional consequent finishing message within timeout to consider the Journey completed.")
+    private boolean preliminaryFinish = false;
+
+    @IsProperty
+    @Readonly
+    @Calculated
+    private Date latestDate;
+    protected static final ExpressionModel latestDate_ = expr().caseWhen().prop("finishDate").isNotNull().then().prop("finishDate").otherwise().prop("startDate").end().model();
+
+    @IsProperty
+    @Readonly
+    @Calculated
+    private Date earliestDate;
+    protected static final ExpressionModel earliestDate_ = expr().caseWhen().prop("startDate").isNotNull().then().prop("startDate").otherwise().prop("finishDate").end().model();
+
+    @Observable
+    protected TgJourney setEarliestDate(final Date earliestDate) {
+        this.earliestDate = earliestDate;
+        return this;
+    }
+
+    public Date getEarliestDate() {
+        return earliestDate;
+    }
+
+    @Observable
+    protected TgJourney setLatestDate(final Date latestDate) {
+        this.latestDate = latestDate;
+        return this;
+    }
+
+    public Date getLatestDate() {
+        return latestDate;
+    }
+
+    @Observable
+    public TgJourney setPreliminaryFinish(final boolean preliminaryFinish) {
+        this.preliminaryFinish = preliminaryFinish;
+        return this;
+    }
+
+    public boolean isPreliminaryFinish() {
+        return preliminaryFinish;
+    }
 
     @Observable
     public TgJourney setFinishLongitude(final BigDecimal value) {
@@ -195,7 +242,7 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
         return this;
     }
 
-    public boolean getActive() {
+    public boolean isActive() {
         return active;
     }
 
@@ -265,7 +312,7 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
         return this;
     }
 
-    public boolean getBusiness() {
+    public boolean isBusiness() {
         return business;
     }
 
