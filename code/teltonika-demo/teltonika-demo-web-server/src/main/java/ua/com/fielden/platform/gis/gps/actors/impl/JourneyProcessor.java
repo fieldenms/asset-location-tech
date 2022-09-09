@@ -1,12 +1,22 @@
 package ua.com.fielden.platform.gis.gps.actors.impl;
 
+import static java.lang.String.format;
+import static java.net.http.HttpClient.newHttpClient;
+import static java.net.http.HttpRequest.newBuilder;
 import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.from;
 import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.orderBy;
 import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.select;
 import static ua.com.fielden.platform.utils.EntityUtils.fetchWithKeyAndDesc;
 
-import java.math.BigDecimal;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collection;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fielden.personnel.Person;
 import ua.com.fielden.platform.sample.domain.ITgMachineModuleAssociation;
@@ -52,7 +62,7 @@ public class JourneyProcessor {
                 .map(TgMachineDriverAssociation::getDriver)
                 .orElse(null);
 
-            final var address = reverseGeocode(message.getY() /*lat*/, message.getX() /*long*/);
+            final var address = reverseGeocode(message.getY().toPlainString() /*lat*/, message.getX().toPlainString() /*long*/);
 
             if (isJourneyStart(message)) { // journey start detected
                 final var qem = 
@@ -172,8 +182,27 @@ public class JourneyProcessor {
             .set(propPrefix + "Longitude", message.getX());
     }
 
-    private static String reverseGeocode(final BigDecimal y, final BigDecimal x) {
-        return "SAMPLE"; // TODO
+    private static String reverseGeocode(final String latitude, final String longitude) {
+        try {
+            final HttpResponse<String> response = newHttpClient().send(newBuilder(new URI(format("https://nominatim.openstreetmap.org/reverse?lat=%s&lon=%s&format=json", latitude, longitude))).GET().build(), BodyHandlers.ofString());
+            if (response.statusCode() == 200 && response.body() != null) {
+                System.out.println(response.body());
+                final ObjectMapper mapper = new ObjectMapper();
+                final Map map = mapper.readValue(response.body(), Map.class);
+                if (map.get("display_name") != null && map.get("display_name") instanceof String) {
+                    System.out.println((String) map.get("display_name"));
+                    return (String) map.get("display_name");
+                }
+            }
+            return "unknown location";
+        } catch (final URISyntaxException | InterruptedException | IOException e) {
+            e.printStackTrace();
+            return "unknown location (error)";
+        }
+    }
+
+    public static void main(final String[] args) {
+        reverseGeocode("49.8550266000", "24.0234399000");
     }
 
 }
