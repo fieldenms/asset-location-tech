@@ -155,6 +155,11 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
     private boolean preliminaryFinish = false;
 
     @IsProperty
+    @MapTo
+    @Title(value = "GNSS Outage Finish?", desc = "Indicates whether Journey finish was caused by GNSS loosing connection i.e. no visible satellites with ignition ON and trip odometer suddenly reset to zero.")
+    private boolean gnssOutageFinish = false;
+
+    @IsProperty
     @Readonly
     @Calculated
     private Date latestDate;
@@ -184,6 +189,16 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
 
     public Date getLatestDate() {
         return latestDate;
+    }
+
+    @Observable
+    public TgJourney setGnssOutageFinish(final boolean gnssOutageFinish) {
+        this.gnssOutageFinish = gnssOutageFinish;
+        return this;
+    }
+
+    public boolean isGnssOutageFinish() {
+        return gnssOutageFinish;
     }
 
     @Observable

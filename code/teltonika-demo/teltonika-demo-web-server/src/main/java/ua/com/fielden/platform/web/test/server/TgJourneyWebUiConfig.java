@@ -101,6 +101,7 @@ public class TgJourneyWebUiConfig {
                 .addEditableProp("purpose").minWidth(100).also()
                 .addEditableProp("overNightStay").minWidth(100).also()
                 .addProp("active").minWidth(100).also()
+                .addProp("gnssOutageFinish").minWidth(100).also()
                 .addProp("preliminaryFinish").minWidth(100).also()
                 .addProp("latestDate").minWidth(100).also()
                 .addProp("earliestDate").minWidth(100).also()

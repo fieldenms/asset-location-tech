@@ -23,12 +23,7 @@ public class JourneyProcessor {
 
     public static void createJourneysFrom(final Collection<TgMessage> messages, final TgMachine machine, final TgJourneyCo journeyCo, final ITgMachineModuleAssociation machineModuleAssociationCo, final TgMachineDriverAssociationCo machineDriverAssociationCo) {
         messages.stream().filter(
-            // trip start
-            message -> message.isTrip()
-            // trip finish
-            || !message.getIgnition()
-               && message.getVectorSpeed() != null && message.getVectorSpeed() >= 0 && message.getVectorSpeed() <= 5
-               && message.getTripOdometer() != null && message.getTripOdometer() > 0
+            message -> isJourneyStart(message) || isJourneyFinish(message) || isJourneyFinishCausedByGnssOutage(message)
        ).forEach(message -> {
             final var initOdometer = machineModuleAssociationCo
                 .getEntityOptional(
@@ -59,7 +54,7 @@ public class JourneyProcessor {
 
             final var address = reverseGeocode(message.getY() /*lat*/, message.getX() /*long*/);
 
-            if (message.isTrip()) { // journey start detected
+            if (isJourneyStart(message)) { // journey start detected
                 final var qem = 
                     from(select(TgJourney.class).where()
                         .prop("machine").eq().val(machine)
@@ -79,7 +74,7 @@ public class JourneyProcessor {
                     // otherwise update start for the earliest period
                     : journeyOpt.get();
                 journeyCo.save(updateInfo("start", targetJourney, message, initOdometer, address));
-            } else { // trip odometer > 0, ignition OFF and speed in [0; 5] -- journey finish detected
+            } else { // journey finish detected (maybe caused by GNSS outage)
                 final var qem = 
                     from(select(TgJourney.class).where()
                         .prop("machine").eq().val(machine)
@@ -100,10 +95,66 @@ public class JourneyProcessor {
                     // otherwise update finish for the latest period;
                     // if it was open then make finish preliminary;
                     // also make it preliminary if outside ignition OFF timeout
-                    : journeyOpt.get().setPreliminaryFinish(journeyOpt.get().getFinishDate() == null || message.getGpsTime().getTime() - journeyOpt.get().getFinishDate().getTime() > ignitionOffTimeout1_5);
-                journeyCo.save(updateInfo("finish", targetJourney, message, initOdometer, address));
+                    : journeyOpt.get().setPreliminaryFinish(!isJourneyFinishCausedByGnssOutage(message) && (journeyOpt.get().getFinishDate() == null || message.getGpsTime().getTime() - journeyOpt.get().getFinishDate().getTime() > ignitionOffTimeout1_5))
+                        .setGnssOutageFinish(isJourneyFinishCausedByGnssOutage(message));
+                if (targetJourney.isPersisted() || !isJourneyFinishCausedByGnssOutage(message)) {
+                    journeyCo.save(updateInfo("finish", targetJourney, message, initOdometer, address));
+                }
             }
         });
+    }
+
+    /**
+     * Returns {@code true} in case where {@code message} represents {@link TgJourney} start as by definition from Teltonika tracker 'Trip' feature.
+     * <p>
+     * "<i>Trip</i> starts when Ignition according <i>Ignition source</i> is ON and Movement according <i>Movement source</i> is ON and also 'Start Speed' is exceeded.
+     * <i>Start Speed</i> defines the minimum GPS speed in order to detect <i>Trip</i> start."
+     * <p>
+     * We fully rely on this (tracker sent parameter) to define journey start dates.
+     * 
+     * @param message
+     * @see https://wiki.teltonika-gps.com/view/FMB120_Trip/Odometer_settings
+     * @return
+     */
+    private static boolean isJourneyStart(final TgMessage message) {
+        return message.isTrip();
+    }
+
+    /**
+     * Returns {@code true} in case where {@code message} represents {@link TgJourney} finish as by definition from Teltonika tracker 'Trip' feature.
+     * <p>
+     * "<i>Ignition OFF Timeout</i> is the timeout value to detect <i>Trip</i> end once the Ignition (configured ignition source) is off.<br>
+     * I/O Trip Odometer must be enabled to use <i>Distance counting mode</i> feature. When it is set to Continuous, <i>Trip</i> distance is going to be counted continuously (from <i>Trip</i> start to <i>Trip</i> end)
+     * and written to I/O <i>Trip Odometer</i> value field. When <i>Trip</i> is over and the next <i>Trip</i> begins, <i>Trip Odometer</i> value is reset to zero."
+     * <p>
+     * We manually define criteria, that is close enough to real world data and Teltonika documentation, to define journey finish dates.
+     * 
+     * @param message
+     * @see https://wiki.teltonika-gps.com/view/FMB120_Trip/Odometer_settings
+     * @return
+     */
+    private static boolean isJourneyFinish(final TgMessage message) {
+        return !message.getIgnition() // ignition OFF is base condition
+           && message.getVectorSpeed() != null && message.getVectorSpeed() >= 0 && message.getVectorSpeed() <= 5 // sometimes speed is greater that zero but still low; we take such messages to increase the chance of always getting "advertised" two (or more) messages within Ignition OFF timeout
+           && message.getTripOdometer() != null && message.getTripOdometer() > 0; // trip odometer must have `Continuous` mode enabled and, when Trip, it is always > 0
+    }
+
+    /**
+     * Returns {@code true} in case where {@code message} represents sudden loss of GNSS connection with zero tripOdometer and Ignition ON.
+     * This message, probably, finishes some journey.
+     * <p>
+     * We only finishes some journey using this message if it exists, i.e. has start.
+     * We do not create open journey with finish if there are no corresponding 'In Progress?' = true journey with start.
+     * This is because in some very rare cases, e.g. in garage with bad connection, we can have situation like this but trip has not started yet.
+     * 
+     * @param message
+     * @see https://wiki.teltonika-gps.com/view/FMB120_Trip/Odometer_settings
+     * @return
+     */
+    private static boolean isJourneyFinishCausedByGnssOutage(final TgMessage message) {
+        return message.getIgnition()
+          && message.getTripOdometer() != null && message.getTripOdometer() == 0
+          && message.getVisibleSattelites() != null && message.getVisibleSattelites() == 0;
     }
 
     private static TgJourney createJourney(final Person driver, final TgMachine machine, final TgJourneyCo journeyCo) {
