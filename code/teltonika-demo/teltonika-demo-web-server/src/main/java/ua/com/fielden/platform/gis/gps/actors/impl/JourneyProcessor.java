@@ -1,6 +1,8 @@
 package ua.com.fielden.platform.gis.gps.actors.impl;
 
 import static java.lang.String.format;
+import static java.math.BigDecimal.valueOf;
+import static java.math.RoundingMode.HALF_UP;
 import static java.net.http.HttpClient.newHttpClient;
 import static java.net.http.HttpRequest.newBuilder;
 import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.from;
@@ -176,7 +178,9 @@ public class JourneyProcessor {
     private static TgJourney updateInfo(final String propPrefix, final TgJourney journey, final TgMessage message, final Integer initOdometer, final String address) {
         return (TgJourney) journey
             .set(propPrefix + "Date", message.getGpsTime())
-            .set(propPrefix + "Odometer", initOdometer + message.getTotalOdometer() / 1000)
+            .set(propPrefix + "Odometer", valueOf(initOdometer).setScale(2).add(
+                valueOf(message.getTotalOdometer()).setScale(2).divide(valueOf(1000), HALF_UP))
+            )
             .set(propPrefix + "Address", address)
             .set(propPrefix + "Latitude", message.getY())
             .set(propPrefix + "Longitude", message.getX());

@@ -51,27 +51,27 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
 
     @IsProperty
     @MapTo
-    @Title(value = "Start Date", desc = "Extended_description_1")
+    @Title(value = "Start Date", desc = "Approximate starting date / time of the Journey. Usually it is a little bit later (~1 min) after actual start of the movement.")
     @CompositeKeyMember(2)
     @Optional
     private Date startDate;
 
     @IsProperty
     @MapTo
-    @Title(value = "Finish Date", desc = "Extended_description_2")
+    @Title(value = "Finish Date", desc = "Approximate finishing date / time of the Journey. Usually it is a little bit later (~1 min) after actual finish of the movement.")
     @CompositeKeyMember(3)
     @Optional
     private Date finishDate;
 
-    @IsProperty
+    @IsProperty(precision = 18, scale = 2)
     @MapTo
-    @Title(value = "Start Odometer", desc = "Extended_description_1")
-    private Integer startOdometer;
+    @Title(value = "Start Odometer", desc = "Approximate odometer at starting date / time of the Journey. The accuracy is very much dependent on the accuracy of initial odometer setting when associating machine with module. It is expected to have accuracy close to kilometers.")
+    private BigDecimal startOdometer;
 
-    @IsProperty
+    @IsProperty(precision = 18, scale = 2)
     @MapTo
-    @Title(value = "Finish Odometer", desc = "Extended_description_2")
-    private Integer finishOdometer;
+    @Title(value = "Finish Odometer", desc = "Approximate odometer at finishing date / time of the Journey. The accuracy is very much dependent on the accuracy of initial odometer setting when associating machine with module. It is expected to have accuracy close to kilometers.")
+    private BigDecimal finishOdometer;
 
     @IsProperty(length = 255)
     @MapTo
@@ -87,43 +87,43 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
 
     @IsProperty
     @MapTo
-    @Title(value = "Business?", desc = "Extended_description")
+    @Title(value = "Business?", desc = "Indicates whether Journey was made for business purposes or not.")
     private boolean business = true;
 
-    @IsProperty
+    @IsProperty(precision = 18, scale = 2)
     @Readonly
     @Calculated
-    @Title(value = "Distance", desc = "Extended_description")
-    private Integer distance;
+    @Title(value = "Distance", desc = "Approximate distance between starting / finishing dates of the Journey. It is expected to have accuracy close to 1/10 of a kilometer.")
+    private BigDecimal distance;
     protected static final ExpressionModel distance_ = expr().prop("finishOdometer").sub().prop("startOdometer").model();
 
-    @IsProperty
+    @IsProperty(precision = 18, scale = 2)
     @Readonly
     @Calculated
-    @Title(value = "Business Distance", desc = "Extended_description")
-    private Integer businessDistance;
-    protected static final ExpressionModel businessDistance_ = expr().caseWhen().prop("business").eq().val(true).then().prop("distance").endAsInt().model();
+    @Title(value = "Business Distance", desc = "Approximate business distance between starting / finishing dates of the Journey. It is expected to have accuracy close to 1/10 of a kilometer.")
+    private BigDecimal businessDistance;
+    protected static final ExpressionModel businessDistance_ = expr().caseWhen().prop("business").eq().val(true).then().prop("distance").end().model();
 
-    @IsProperty
+    @IsProperty(precision = 18, scale = 2)
     @Readonly
     @Calculated
-    @Title(value = "Private Distance", desc = "Extended_description")
-    private Integer privateDistance;
-    protected static final ExpressionModel privateDistance_ = expr().caseWhen().prop("business").eq().val(false).then().prop("distance").endAsInt().model();
+    @Title(value = "Private Distance", desc = "Approximate private distance between starting / finishing dates of the Journey. It is expected to have accuracy close to 1/10 of a kilometer.")
+    private BigDecimal privateDistance;
+    protected static final ExpressionModel privateDistance_ = expr().caseWhen().prop("business").eq().val(false).then().prop("distance").end().model();
 
     @IsProperty
     @MapTo
-    @Title(value = "Driver", desc = "Extended_description")
+    @Title(value = "Driver", desc = "The Driver that performed a Journey.")
     private Person driver;
 
     @IsProperty
     @MapTo
-    @Title(value = "Purpose", desc = "Extended_description")
+    @Title(value = "Purpose", desc = "Journey purpose.")
     private TgJourneyPurpose purpose;
 
     @IsProperty
     @MapTo
-    @Title(value = "Over Night Stay", desc = "Extended_description")
+    @Title(value = "Over Night Stay", desc = "Indicates where Vehicle stayed the last night before Journey.")
     private TgJourneyOverNightStay overNightStay;
 
     @IsProperty
@@ -292,32 +292,32 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
     }
 
     @Observable
-    protected TgJourney setPrivateDistance(final Integer privateDistance) {
+    protected TgJourney setPrivateDistance(final BigDecimal privateDistance) {
         this.privateDistance = privateDistance;
         return this;
     }
 
-    public Integer getPrivateDistance() {
+    public BigDecimal getPrivateDistance() {
         return privateDistance;
     }
 
     @Observable
-    protected TgJourney setBusinessDistance(final Integer businessDistance) {
+    protected TgJourney setBusinessDistance(final BigDecimal businessDistance) {
         this.businessDistance = businessDistance;
         return this;
     }
 
-    public Integer getBusinessDistance() {
+    public BigDecimal getBusinessDistance() {
         return businessDistance;
     }
 
     @Observable
-    protected TgJourney setDistance(final Integer distance) {
+    protected TgJourney setDistance(final BigDecimal distance) {
         this.distance = distance;
         return this;
     }
 
-    public Integer getDistance() {
+    public BigDecimal getDistance() {
         return distance;
     }
 
@@ -352,22 +352,22 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
     }
 
     @Observable
-    public TgJourney setStartOdometer(final Integer startOdometer) {
+    public TgJourney setStartOdometer(final BigDecimal startOdometer) {
         this.startOdometer = startOdometer;
         return this;
     }
 
-    public Integer getStartOdometer() {
+    public BigDecimal getStartOdometer() {
         return startOdometer;
     }
 
     @Observable
-    public TgJourney setFinishOdometer(final Integer finishOdometer) {
+    public TgJourney setFinishOdometer(final BigDecimal finishOdometer) {
         this.finishOdometer = finishOdometer;
         return this;
     }
 
-    public Integer getFinishOdometer() {
+    public BigDecimal getFinishOdometer() {
         return finishOdometer;
     }
 
