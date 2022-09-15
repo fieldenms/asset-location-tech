@@ -11,6 +11,7 @@ import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.selec
 import static ua.com.fielden.platform.utils.EntityUtils.fetchWithKeyAndDesc;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpResponse;
@@ -105,9 +106,12 @@ public class JourneyProcessor {
                     // ... then create new open period with preliminary finish;
                     ? createJourney(driver, machine, journeyCo).setPreliminaryFinish(true)
                     // otherwise update finish for the latest period;
-                    // if it was open then make finish preliminary;
-                    // also make it preliminary if outside ignition OFF timeout
-                    : journeyOpt.get().setPreliminaryFinish(!isJourneyFinishCausedByGnssOutage(message) && (journeyOpt.get().getFinishDate() == null || message.getGpsTime().getTime() - journeyOpt.get().getFinishDate().getTime() > ignitionOffTimeout1_5))
+                    : journeyOpt.get()
+                        .setPreliminaryFinish(!isJourneyFinishCausedByGnssOutage(message) && (
+                            journeyOpt.get().getFinishDate() == null // if it was open then make finish preliminary;
+                            || message.getGpsTime().getTime() - journeyOpt.get().getFinishDate().getTime() > ignitionOffTimeout1_5 // also make it preliminary if outside ignition OFF timeout;
+                            || isFarEnoughFromPreviousPreliminaryFinish(journeyOpt.get(), message, initOdometer) // also make it preliminary if inside ignition OFF timeout but still moved far enough (> 80 meters)
+                        ))
                         .setGnssOutageFinish(isJourneyFinishCausedByGnssOutage(message));
                 if (targetJourney.isPersisted() || !isJourneyFinishCausedByGnssOutage(message)) {
                     journeyCo.save(updateInfo("finish", targetJourney, message, initOdometer, address));
@@ -175,12 +179,27 @@ public class JourneyProcessor {
             .setMachine(machine);
     }
 
+    private static BigDecimal newOdometer(final TgMessage message, final Integer initOdometer) {
+        return valueOf(initOdometer).setScale(2).add(valueOf(message.getTotalOdometer()).setScale(2).divide(valueOf(1000), HALF_UP));
+    }
+
+    /**
+     * For close enough finish dates (within ignition OFF timeout), we consider the second one still preliminary if the vehicle moved over 80 meters.
+     * 
+     * @param journey
+     * @param message
+     * @param initOdometer
+     * @return
+     */
+    private static boolean isFarEnoughFromPreviousPreliminaryFinish(final TgJourney journey, final TgMessage message, final Integer initOdometer) {
+        final var newFinishOdometer = newOdometer(message, initOdometer);
+        return newFinishOdometer.subtract(journey.getFinishOdometer()).doubleValue() > 0.08;
+    }
+
     private static TgJourney updateInfo(final String propPrefix, final TgJourney journey, final TgMessage message, final Integer initOdometer, final String address) {
         return (TgJourney) journey
             .set(propPrefix + "Date", message.getGpsTime())
-            .set(propPrefix + "Odometer", valueOf(initOdometer).setScale(2).add(
-                valueOf(message.getTotalOdometer()).setScale(2).divide(valueOf(1000), HALF_UP))
-            )
+            .set(propPrefix + "Odometer", newOdometer(message, initOdometer))
             .set(propPrefix + "Address", address)
             .set(propPrefix + "Latitude", message.getY())
             .set(propPrefix + "Longitude", message.getX());
