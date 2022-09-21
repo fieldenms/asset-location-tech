@@ -156,6 +156,11 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
 
     @IsProperty
     @MapTo
+    @Title(value = "Preliminary Finish Reset By Ignition On?", desc = "Indicates whether existing preliminary Finish Date was reset by newly appearing Ignition ON messages within timeout.")
+    private boolean preliminaryFinishResetByIgnitionOn = false;
+
+    @IsProperty
+    @MapTo
     @Title(value = "GNSS Outage Finish?", desc = "Indicates whether Journey finish was caused by GNSS loosing connection i.e. no visible satellites with ignition ON and trip odometer suddenly reset to zero.")
     private boolean gnssOutageFinish = false;
 
@@ -199,6 +204,16 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
 
     public boolean isGnssOutageFinish() {
         return gnssOutageFinish;
+    }
+
+    @Observable
+    public TgJourney setPreliminaryFinishResetByIgnitionOn(final boolean preliminaryFinishResetByIgnitionOn) {
+        this.preliminaryFinishResetByIgnitionOn = preliminaryFinishResetByIgnitionOn;
+        return this;
+    }
+
+    public boolean isPreliminaryFinishResetByIgnitionOn() {
+        return preliminaryFinishResetByIgnitionOn;
     }
 
     @Observable

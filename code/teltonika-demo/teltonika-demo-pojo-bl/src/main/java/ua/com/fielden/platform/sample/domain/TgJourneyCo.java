@@ -34,6 +34,7 @@ public interface TgJourneyCo extends IEntityDao<TgJourney> {
         "finishLatitude",
         "finishLongitude",
         "preliminaryFinish",
+        "preliminaryFinishResetByIgnitionOn",
         "gnssOutageFinish",
         "latestDate",
         "earliestDate"

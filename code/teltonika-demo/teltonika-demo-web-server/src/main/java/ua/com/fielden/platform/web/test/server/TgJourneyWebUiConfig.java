@@ -103,6 +103,7 @@ public class TgJourneyWebUiConfig {
                 .addProp("active").minWidth(100).also()
                 .addProp("gnssOutageFinish").minWidth(100).also()
                 .addProp("preliminaryFinish").minWidth(100).also()
+                .addProp("preliminaryFinishResetByIgnitionOn").minWidth(100).also()
                 .addProp("latestDate").minWidth(100).also()
                 .addProp("earliestDate").minWidth(100).also()
                 .addProp("startLatitude").minWidth(100).also()
