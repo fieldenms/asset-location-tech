@@ -33,11 +33,10 @@ public class TgJourneyDao extends CommonEntityDao<TgJourney> implements TgJourne
     @SessionRequired
     //@Authorise(TgJourney_CanSave_Token.class)
     public TgJourney save(final TgJourney entity) {
+        // saving of TgJourneys on Netty GPS server threads still requires user;
+        // this is because TgJourney is persistent entity with 'createdBy' property and will be later adjusted by real users;
         if (getUser() == null) {
             userProvider.setUsername(User.system_users.SU.toString(), userCo);
-            if (getUser() == null) {
-                throw new IllegalStateException("Why???");
-            }
         }
         return super.save(entity);
     }
