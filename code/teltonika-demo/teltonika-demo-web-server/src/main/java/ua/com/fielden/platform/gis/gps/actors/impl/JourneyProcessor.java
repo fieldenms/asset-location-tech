@@ -229,6 +229,13 @@ public class JourneyProcessor {
             .set(propPrefix + "Longitude", message.getX());
     }
 
+    /**
+     * Finds address by coordinates using Nominatim's reverse geocoding API.
+     * 
+     * @param latitude
+     * @param longitude
+     * @return
+     */
     private static String reverseGeocode(final String latitude, final String longitude) {
         try {
             final HttpResponse<String> response = newHttpClient().send(newBuilder(new URI(format("https://nominatim.openstreetmap.org/reverse?lat=%s&lon=%s&format=json", latitude, longitude))).GET().build(), BodyHandlers.ofString());
@@ -238,7 +245,7 @@ public class JourneyProcessor {
                 final Map map = mapper.readValue(response.body(), Map.class);
                 if (map.get("display_name") != null && map.get("display_name") instanceof String) {
                     System.out.println((String) map.get("display_name"));
-                    return (String) map.get("display_name");
+                    return ((String) map.get("display_name")).substring(0, 255); // reduce to 255 length if exceeded
                 }
             }
             return "unknown location";
@@ -246,10 +253,6 @@ public class JourneyProcessor {
             e.printStackTrace();
             return "unknown location (error)";
         }
-    }
-
-    public static void main(final String[] args) {
-        reverseGeocode("49.8550266000", "24.0234399000");
     }
 
 }

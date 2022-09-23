@@ -75,13 +75,13 @@ public class TgJourney extends AbstractPersistentEntity<DynamicEntityKey> {
 
     @IsProperty(length = 255)
     @MapTo
-    @Title(value = "Start Address", desc = "Extended_description")
+    @Title(value = "Start Address", desc = "Reversely geocoded address (with a postcode) of the Journey's start.")
     @BeforeChange(@Handler(MaxLengthValidator.class))
     private String startAddress;
 
     @IsProperty(length = 255)
     @MapTo
-    @Title(value = "Finish Address", desc = "Extended_description")
+    @Title(value = "Finish Address", desc = "Reversely geocoded address (with a postcode) of the Journey's finish.")
     @BeforeChange(@Handler(MaxLengthValidator.class))
     private String finishAddress;
 
