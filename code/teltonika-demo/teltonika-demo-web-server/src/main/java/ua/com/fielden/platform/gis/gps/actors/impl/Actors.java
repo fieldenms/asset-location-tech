@@ -9,8 +9,11 @@ import akka.actor.ActorRef;
 import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.gps.actors.AbstractActors;
 import ua.com.fielden.platform.persistence.HibernateUtil;
+import ua.com.fielden.platform.sample.domain.ITgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.ITgMessage;
+import ua.com.fielden.platform.sample.domain.TgJourneyCo;
 import ua.com.fielden.platform.sample.domain.TgMachine;
+import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociationCo;
 import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.TgMessage;
 import ua.com.fielden.platform.sample.domain.TgModule;
@@ -42,6 +45,9 @@ public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMac
                 lastMessage,
                 injector.getInstance(HibernateUtil.class),
                 injector.getInstance(ITgMessage.class),
+                injector.getInstance(TgJourneyCo.class),
+                injector.getInstance(ITgMachineModuleAssociation.class),
+                injector.getInstance(TgMachineDriverAssociationCo.class),
                 machinesCounterRef,
                 violatingMessageResolverRef,
                 isEmergencyMode(),

@@ -1,7 +1,11 @@
 package fielden.dev_mod.util;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
 import static org.apache.logging.log4j.LogManager.getLogger;
+import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.fetchAll;
+import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.from;
+import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.select;
 
 import java.io.FileInputStream;
 import java.util.List;
@@ -9,21 +13,22 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 import org.hibernate.dialect.Dialect;
-import org.hibernate.dialect.H2Dialect;
 import org.joda.time.DateTime;
 
 import fielden.config.ApplicationDomain;
 import fielden.personnel.Person;
 import ua.com.fielden.platform.devdb_support.DomainDrivenDataPopulation;
 import ua.com.fielden.platform.entity.AbstractEntity;
-import ua.com.fielden.platform.persistence.HibernateUtil;
+import ua.com.fielden.platform.gis.gps.actors.impl.JourneyProcessor;
+import ua.com.fielden.platform.sample.domain.ITgMachine;
 import ua.com.fielden.platform.sample.domain.ITgMachineModuleAssociation;
+import ua.com.fielden.platform.sample.domain.ITgMessage;
+import ua.com.fielden.platform.sample.domain.TgJourneyCo;
 import ua.com.fielden.platform.sample.domain.TgMachine;
-import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
-import ua.com.fielden.platform.sample.domain.TgModule;
+import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociationCo;
+import ua.com.fielden.platform.sample.domain.TgMessage;
 import ua.com.fielden.platform.security.user.User;
 import ua.com.fielden.platform.test.IDomainDrivenTestCaseConfiguration;
-import ua.com.fielden.platform.utils.DbUtils;
 
 /**
  * This is a convenience class for (re-)creation of the development database and its population.
@@ -64,11 +69,11 @@ public class PopulateDb extends DomainDrivenDataPopulation {
 
         // use TG DDL generation or
         // Hibernate DDL generation final List<String> createDdl = DbUtils.generateSchemaByHibernate()
-        final List<String> createDdl = config.getDomainMetadata().generateDatabaseDdl(dialect); // , TgMessage.class); createDdl.stream().forEach(System.out::println); // GenDdl-like; comment following lines
-        final List<String> ddl = dialect instanceof H2Dialect ?
-                                 DbUtils.prependDropDdlForH2(createDdl) :
-                                 DbUtils.prependDropDdlForSqlServer(createDdl);
-        DbUtils.execSql(ddl, config.getInstance(HibernateUtil.class).getSessionFactory().getCurrentSession());
+//        final List<String> createDdl = config.getDomainMetadata().generateDatabaseDdl(dialect); // , TgMessage.class); createDdl.stream().forEach(System.out::println); // GenDdl-like; comment following lines
+//        final List<String> ddl = dialect instanceof H2Dialect ?
+//                                 DbUtils.prependDropDdlForH2(createDdl) :
+//                                 DbUtils.prependDropDdlForSqlServer(createDdl);
+//        DbUtils.execSql(ddl, config.getInstance(HibernateUtil.class).getSessionFactory().getCurrentSession());
 
         final PopulateDb popDb = new PopulateDb(config, props);
         popDb.populateDomain();
@@ -78,31 +83,52 @@ public class PopulateDb extends DomainDrivenDataPopulation {
     protected void populateDomain() {
         LOGGER.info("Creating and populating the development database...");
         
-        setupUser(User.system_users.SU, "fielden");
-        setupPerson(User.system_users.SU, "fielden");
-
-        LOGGER.info("\tPopulating testing machine + module...");
-        final TgMachine machine00 = save(new_(TgMachine.class, "00000001").setDesc("Machine for testing with 867648048071573 module."));
-        final TgModule module00 = save(new_(TgModule.class, "867648048071573")
-            .setSerialNo(999)
-            .setGpsFirmware("1.0")
-            .setHwVersion("1.0")
-            .setImletVersion("1.0")
-            .setIdentifier("id")
-            .setDesc("Module 867648048071573 for testing."));
-        final TgMachineModuleAssociation assoc00 = new_composite(TgMachineModuleAssociation.class, machine00, module00, new DateTime().withTimeAtStartOfDay().toDate());
-        getInstance(ITgMachineModuleAssociation.class).regularSave(assoc00);
-        //save(assoc00);
-        final TgMachine machine01 = save(new_(TgMachine.class, "00000002").setDesc("A vehicle for testing with 860264054087367 module."));
-        final TgModule module01 = save(new_(TgModule.class, "860264054087367")
-            .setSerialNo(999)
-            .setGpsFirmware("1.0")
-            .setHwVersion("1.0")
-            .setImletVersion("1.0")
-            .setIdentifier("id")
-            .setDesc("FMC001 860264054087367 for testing."));
-        final TgMachineModuleAssociation assoc01 = new_composite(TgMachineModuleAssociation.class, machine01, module01, new DateTime().withTimeAtStartOfDay().toDate());
-        getInstance(ITgMachineModuleAssociation.class).regularSave(assoc01);
+        final var model = from(select(TgMessage.class)
+            .where().prop("gpsTime").gt().val(new DateTime(2022, 9, 2, 0, 0).toDate())
+            .model()).with(fetchAll(TgMessage.class)).model();
+        try (final var messageStream = getInstance(ITgMessage.class).stream(model)) {
+            messageStream.forEach(message -> JourneyProcessor.createJourneysFrom(
+                asList(message),
+                getInstance(ITgMachine.class).getEntity(from(select(TgMachine.class).model()).with(fetchAll(TgMachine.class)).model()),
+                getInstance(TgJourneyCo.class),
+                getInstance(ITgMachineModuleAssociation.class),
+                getInstance(TgMachineDriverAssociationCo.class)
+            ));
+        }
+//        setupUser(User.system_users.SU, "fielden");
+//        final var person = setupPerson(User.system_users.SU, "fielden");
+//
+//        save(new_(TgJourneyPurpose.class, "BM").setDesc("BM journey purpose."));
+//        save(new_(TgJourneyPurpose.class, "TR").setDesc("TR journey purpose."));
+//
+//        save(new_(TgJourneyOverNightStay.class, "HM").setDesc("Home."));
+//        save(new_(TgJourneyOverNightStay.class, "WK").setDesc("Work."));
+//        save(new_(TgJourneyOverNightStay.class, "GR").setDesc("Garage."));
+//
+//        LOGGER.info("\tPopulating testing machine + module...");
+//        final TgMachine machine00 = save(new_(TgMachine.class, "00000001").setDesc("Machine for testing with 867648048071573 module."));
+//        final TgModule module00 = save(new_(TgModule.class, "867648048071573")
+//            .setSerialNo(999)
+//            .setGpsFirmware("1.0")
+//            .setHwVersion("1.0")
+//            .setImletVersion("1.0")
+//            .setIdentifier("id")
+//            .setDesc("Module 867648048071573 for testing."));
+//        final TgMachineModuleAssociation assoc00 = new_composite(TgMachineModuleAssociation.class, machine00, module00, new DateTime().withTimeAtStartOfDay().toDate()).setInitOdometer(158292);
+//        getInstance(ITgMachineModuleAssociation.class).regularSave(assoc00);
+//        getInstance(TgMachineDriverAssociationCo.class).regularSave(new_composite(TgMachineDriverAssociation.class, machine00, person, new DateTime().withTimeAtStartOfDay().toDate()));
+//        //save(assoc00);
+//        final TgMachine machine01 = save(new_(TgMachine.class, "00000002").setDesc("A vehicle for testing with 860264054087367 module."));
+//        final TgModule module01 = save(new_(TgModule.class, "860264054087367")
+//            .setSerialNo(999)
+//            .setGpsFirmware("1.0")
+//            .setHwVersion("1.0")
+//            .setImletVersion("1.0")
+//            .setIdentifier("id")
+//            .setDesc("FMC001 860264054087367 for testing."));
+//        final TgMachineModuleAssociation assoc01 = new_composite(TgMachineModuleAssociation.class, machine01, module01, new DateTime().withTimeAtStartOfDay().toDate()).setInitOdometer(99999);
+//        getInstance(ITgMachineModuleAssociation.class).regularSave(assoc01);
+//        getInstance(TgMachineDriverAssociationCo.class).regularSave(new_composite(TgMachineDriverAssociation.class, machine01, person, new DateTime().withTimeAtStartOfDay().toDate()));
 
         
 //        LOGGER.info("\tPopulating messages...");
@@ -231,9 +257,9 @@ public class PopulateDb extends DomainDrivenDataPopulation {
         LOGGER.info("Completed database creation and population.");
 	}
 
-    private void setupPerson(final User.system_users defaultUser, final String emailDomain) {
+    private Person setupPerson(final User.system_users defaultUser, final String emailDomain) {
         final User su = co(User.class).findByKey(defaultUser.name());
-        save(new_(Person.class).setEmail(defaultUser + "@" + emailDomain).setDesc("Super Person").setUser(su));
+        return save(new_(Person.class).setEmail(defaultUser + "@" + emailDomain).setDesc("Super Person").setUser(su));
     }
 
     @Override

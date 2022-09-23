@@ -10,15 +10,19 @@ import java.util.Optional;
 
 import com.google.inject.Injector;
 
-import ua.com.fielden.platform.entity.EntityNewAction;
+import fielden.common.LayoutComposer;
+import fielden.common.StandardActions;
+import ua.com.fielden.platform.sample.domain.TgJourney;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.sample.domain.TgMessage;
 import ua.com.fielden.platform.sample.domain.TgMessageMap;
 import ua.com.fielden.platform.sample.domain.TgMessageProducer;
 import ua.com.fielden.platform.ui.menu.sample.MiTgMessage;
+import ua.com.fielden.platform.web.action.CentreConfigurationWebUiConfig.CentreConfigActions;
 import ua.com.fielden.platform.web.app.config.IWebUiBuilder;
 import ua.com.fielden.platform.web.centre.EntityCentre;
 import ua.com.fielden.platform.web.centre.api.EntityCentreConfig;
+import ua.com.fielden.platform.web.centre.api.actions.EntityActionConfig;
 import ua.com.fielden.platform.web.centre.api.impl.EntityCentreBuilder;
 import ua.com.fielden.platform.web.centre.api.insertion_points.InsertionPoints;
 import ua.com.fielden.platform.web.centre.api.resultset.scrolling.impl.ScrollConfig;
@@ -85,19 +89,22 @@ public class TgMessageWebUiConfig {
      * @return created entity centre
      */
     private EntityCentre<TgMessage> createCentre(final Injector injector) {
+        final String layout = LayoutComposer.mkVarGridForCentre(2, 3, 2, 2);
+        final EntityActionConfig standardExportAction = StandardActions.EXPORT_ACTION.mkAction(TgJourney.class);
+        final EntityActionConfig standardSortAction = CentreConfigActions.CUSTOMISE_COLUMNS_ACTION.mkAction();
         final EntityCentreConfig<TgMessage> centre = EntityCentreBuilder.centreFor(TgMessage.class)
-                //.runAutomatically()
-                .addTopAction(action(EntityNewAction.class).
-                        withContext(context().withSelectionCrit().build()).
-                        icon("add-circle-outline").
-                        shortDesc("Add new").
-                        longDesc("Start coninuous creatio of entities").
-                        shortcut("alt+n").
-                        withNoParentCentreRefresh().
-                        build())
+                .addTopAction(standardSortAction).also()
+                .addTopAction(standardExportAction)
                 .addCrit("machine").asMulti().autocompleter(TgMachine.class)/*.setDefaultValue(multi().string().setValues("07101ТА").value())*/.also()
-                .addCrit("gpsTime").asRange().date()/*.setDefaultValue(range().date().setFromValue(new DateTime(2000, 1, 1, 0, 0).toDate()).setToValue(new DateTime(2014, 5, 26, 23, 59).toDate()).value())*/
-                .setLayoutFor(Device.DESKTOP, Optional.empty(), "[['center-justified', 'start', ['margin-right: 40px', 'flex'], ['flex']]]")
+                .addCrit("gpsTime").asRange().date().also()/*.setDefaultValue(range().date().setFromValue(new DateTime(2000, 1, 1, 0, 0).toDate()).setToValue(new DateTime(2014, 5, 26, 23, 59).toDate()).value())*/
+                .addCrit("visibleSattelites").asRange().integer().also()
+                .addCrit("powerSupplyVoltage").asRange().decimal().also()
+                .addCrit("gpsPower").asMulti().bool().also()
+                .addCrit("vectorSpeed").asRange().integer().also()
+                .addCrit("ignition").asMulti().bool().also()
+                .addCrit("tripOdometer").asRange().integer().also()
+                .addCrit("trip").asMulti().bool()
+                .setLayoutFor(Device.DESKTOP, Optional.empty(), layout)
                 .withScrollingConfig(ScrollConfig.configScroll().withFixedHeader().withFixedSummary().done())
                 .setPageCapacity(10000)
                 .setVisibleRowsCount(10)
@@ -105,18 +112,6 @@ public class TgMessageWebUiConfig {
                 .addProp("machine")
                     .order(1).asc()
                     .width(90)
-                .also()
-                .addProp("gpsTime")
-                    .order(2).asc()
-                    .width(160)
-                    .withSummary("_countOfAll", "COUNT(SELF)", "Кількість:Кількість повідомлень від модуля.")
-                .also()
-                .addProp("vectorSpeed")
-                    .width(100)
-                .also()
-                .addProp("travelledDistance")
-                    .width(100)
-                    .withSummary("_sumOfTravelledDistance", "SUM(travelledDistance) / 1000.0", "Відстань (км):Сумарна відстань у кілометрах, пройдена вибраною машиною за вибраний час.")
                 .also()
                 .addProp("din1")
                     .width(90)
@@ -148,6 +143,18 @@ public class TgMessageWebUiConfig {
                 .addProp("packetReceived")
                     .width(90)
                     //status
+                .also()
+                .addProp("travelledDistance")
+                    .width(100)
+                    .withSummary("_sumOfTravelledDistance", "SUM(travelledDistance) / 1000.0", "Відстань (км):Сумарна відстань у кілометрах, пройдена вибраною машиною за вибраний час.")
+                .also()
+                .addProp("gpsTime")
+                    .order(2).asc()
+                    .width(160)
+                    .withSummary("_countOfAll", "COUNT(SELF)", "Кількість:Кількість повідомлень від модуля.")
+                .also()
+                .addProp("vectorSpeed")
+                    .width(100)
                 .also()
                 .addProp("ignition")
                     .width(90)
