@@ -24,7 +24,7 @@ import ua.com.fielden.platform.utils.Validators;
 /**
  * DAO implementation for companion object {@link MachineDriverAssociationCo}.
  *
- * @author Developers
+ * @author TG Team
  *
  */
 @EntityType(TgMachineDriverAssociation.class)
@@ -106,8 +106,8 @@ public class TgMachineDriverAssociationDao extends CommonEntityDao<TgMachineDriv
     public Exception validateOverlappingWithExistingHistory(final TgMachineDriverAssociation assoc) {
         final TgMachineDriverAssociation overlappedMachineOrientedAssociation = Validators.findFirstOverlapping(assoc, associationsFetchModel(), this, "from", "to", "machine");
         if (overlappedMachineOrientedAssociation != null) {
-            final IllegalStateException e = new IllegalStateException("Машина не може мати кілька приєднаних Drivers одночасно. Нова асоціація [" + assoc + " до "
-                    + toString(assoc.getTo()) + "] перетинається із уже існуючою [" + overlappedMachineOrientedAssociation + " до "
+            final IllegalStateException e = new IllegalStateException("Vehicle can not have several Drivers associated simultaneously. New association [" + assoc + " -> "
+                    + toString(assoc.getTo()) + "] intersects with existing [" + overlappedMachineOrientedAssociation + " -> "
                     + toString(overlappedMachineOrientedAssociation.getTo()) + "].");
             LOGGER.error(e.getMessage(), e);
             return e;
@@ -118,14 +118,14 @@ public class TgMachineDriverAssociationDao extends CommonEntityDao<TgMachineDriv
     private Exception validateInitialisationOfProps(final TgMachineDriverAssociation assoc, final List<String> shouldBeNotNull, final List<String> shouldBeNull) {
         for (final String prop : shouldBeNotNull) {
             if (assoc.get(prop) == null) {
-                final IllegalStateException e = new IllegalStateException("Асоціація повинна мати ініціалізовану властивість [" + prop + "].");
+                final IllegalStateException e = new IllegalStateException("Association should have prop [" + prop + "] initialised.");
                 LOGGER.error(e.getMessage(), e);
                 return e;
             }
         }
         for (final String prop : shouldBeNull) {
             if (assoc.get(prop) != null) {
-                final IllegalStateException e = new IllegalStateException("Асоціація повинна мати НЕініціалізовану властивість [" + prop + "].");
+                final IllegalStateException e = new IllegalStateException("Association should not have prop [" + prop + "] initialised.");
                 LOGGER.error(e.getMessage(), e);
                 return e;
             }
@@ -154,8 +154,8 @@ public class TgMachineDriverAssociationDao extends CommonEntityDao<TgMachineDriv
 
     private Exception validateUnsupportedNewAssociationInThePast(final TgMachineDriverAssociation assoc, final Date now) {
         if (assoc.getFrom().getTime() <= now.getTime()) {
-            final IllegalStateException e = new IllegalStateException("Асоціація машини з Driver в МИНУЛОМУ не підтримуються. Нова асоціація [" + assoc + " до "
-                    + toString(assoc.getTo()) + "] має час початку, який є в минулому [ < " + toString(now) + "].");
+            final IllegalStateException e = new IllegalStateException("Vehicle association with Driver in the PAST is not supported. New association [" + assoc + " -> "
+                    + toString(assoc.getTo()) + "] has From Date in the past [ < " + toString(now) + "].");
             LOGGER.error(e.getMessage(), e);
             return e;
         }
@@ -164,8 +164,8 @@ public class TgMachineDriverAssociationDao extends CommonEntityDao<TgMachineDriv
 
     private Exception validateUnsupportedChangedAssociationInThePast(final TgMachineDriverAssociation assoc, final Date now) {
         if (assoc.getTo().getTime() <= now.getTime()) {
-            final IllegalStateException e = new IllegalStateException("Від'єднання Driver від машини в МИНУЛОМУ не підтримується. Нова асоціація [" + assoc + " до "
-                    + toString(assoc.getTo()) + "] має час завершення, який є в минулому [ < " + toString(now) + "].");
+            final IllegalStateException e = new IllegalStateException("Vehicle dissociation with Driver in the PAST is not supported. New association [" + assoc + " -> "
+                    + toString(assoc.getTo()) + "] has To Date in the past [ < " + toString(now) + "].");
             LOGGER.error(e.getMessage(), e);
             return e;
         }

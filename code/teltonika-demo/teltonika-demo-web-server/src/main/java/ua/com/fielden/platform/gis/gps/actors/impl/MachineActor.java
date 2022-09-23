@@ -151,6 +151,7 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
 
         tr.commit();
 
+        // process messages immediately and create / update Journeys from them
         createJourneysFrom(messages, getMachine(), journeyCo, machineModuleAssociationCo, machineDriverAssociationCo);
     }
 

@@ -14,20 +14,20 @@ import ua.com.fielden.platform.gis.gps.AbstractAvlMachineModuleTemporalAssociati
 @MapEntityTo
 public class TgMachineModuleAssociation extends AbstractAvlMachineModuleTemporalAssociation<TgMessage, TgMachine, TgModule> {
     @IsProperty
-    @Title(value = "Машина", desc = "Машина")
+    @Title("Vehicle")
     @MapTo
     @CompositeKeyMember(1)
     private TgMachine machine;
 
     @IsProperty
     @MapTo
-    @Title(value = "Модуль", desc = "Модуль, асоційований із машиною")
+    @Title(value = "Module", desc = "Module, that is associated with the Vehicle.")
     @CompositeKeyMember(2)
     private TgModule module;
 
     @IsProperty
     @MapTo
-    @Title(value = "Init Odometer", desc = "Extended_description")
+    @Title(value = "Init Odometer", desc = "Initial Odometer (in a kilometers) when association started.")
     @Required
     private Integer initOdometer;
 

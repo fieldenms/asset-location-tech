@@ -25,54 +25,54 @@ import ua.com.fielden.platform.security.user.User;
 @CompanionObject(TgMachineDriverAssociationCo.class)
 @MapEntityTo
 @KeyType(DynamicEntityKey.class)
-@KeyTitle(value = "Прив'язка машини з driver", desc = "Прив'язка машини з driver")
-@DescTitle(value = "Коментар", desc = "Додатковий коментар щодо проведеної асоціації машини з driver")
-@EntityTitle(value = "Прив'язка машини з driver", desc = "Прив'язка машини з driver")
+@KeyTitle("Vehicle Association with Driver")
+@DescTitle("Comments")
+@EntityTitle("Vehicle Association with Driver")
 public class TgMachineDriverAssociation extends AbstractEntity<DynamicEntityKey> {
     @IsProperty
-    @Title(value = "Машина", desc = "Машина")
+    @Title("Vehicle")
     @MapTo
     @CompositeKeyMember(1)
     private TgMachine machine;
 
     @IsProperty
     @MapTo
-    @Title(value = "Driver", desc = "Driver associated with machine.")
+    @Title(value = "Driver", desc = "Driver associated with the Vehicle.")
     @CompositeKeyMember(2)
     private Person driver;
 
     @IsProperty
     @MapTo
     @Dependent("to")
-    @Title(value = "Від", desc = "Дата, починаючи з якої модуль був прив'язаний до машини")
+    @Title(value = "From Date", desc = "The date when association started.")
     @CompositeKeyMember(3)
     private Date from;
 
     @IsProperty
     @MapTo
     @Dependent("from")
-    @Title(value = "До", desc = "Дата до якої модуль був прив'язаний до машини")
+    @Title(value = "To Date", desc = "The date when association finished.")
     private Date to;
 
     @IsProperty(assignBeforeSave = true)
     @MapTo
-    @Title(value = "Дата створення", desc = "Дата створення асоціації")
+    @Title(value = "Creation Date", desc = "The date when association was created.")
     private Date created;
 
     @IsProperty
     @MapTo
-    @Title(value = "Дата зміни", desc = "Дата зміни асоціації")
+    @Title(value = "Changed Date", desc = "The date when association was changed.")
     private Date changed;
 
     @IsProperty(assignBeforeSave = true)
     @MapTo
-    @Title(value = "Прив'язувач", desc = "Користувач, що провів асоціацію Машини з Модулем в часі")
+    @Title(value = "Created By", desc = "The user, that associated the Vehicle with the Driver.")
     @Readonly
     private User createdBy;
 
     @IsProperty
     @MapTo
-    @Title(value = "Відв'язувач", desc = "Користувач, що змінив асоціацію Машини з Модулем в часі")
+    @Title(value = "Changed By", desc = "The user, that changed Vehicle association with the Driver.")
     // @TransactionUser
     // @Required
     @Readonly
