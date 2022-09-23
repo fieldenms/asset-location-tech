@@ -287,12 +287,14 @@ public class JourneyProcessor {
         try {
             final HttpResponse<String> response = newHttpClient().send(newBuilder(new URI(format("https://nominatim.openstreetmap.org/reverse?lat=%s&lon=%s&format=json", latitude, longitude))).GET().build(), BodyHandlers.ofString());
             if (response.statusCode() == 200 && response.body() != null) {
-                System.out.println(response.body());
                 final ObjectMapper mapper = new ObjectMapper();
                 final Map map = mapper.readValue(response.body(), Map.class);
-                if (map.get("display_name") != null && map.get("display_name") instanceof String) {
+                if (map.get("display_name") != null && map.get("display_name") instanceof final String s) {
                     System.out.println((String) map.get("display_name"));
-                    return ((String) map.get("display_name")).substring(0, 255); // reduce to 255 length if exceeded
+                    if (s.length() > 255) {
+                        return s.substring(0, 255); // reduce to 255 length if exceeded
+                    }
+                    return s;
                 }
             }
             return "unknown location";

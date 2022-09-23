@@ -11,7 +11,10 @@ import com.google.inject.Injector;
 import fielden.common.LayoutComposer;
 import fielden.common.StandardActions;
 import fielden.main.menu.personnel.MiTgJourney;
+import fielden.personnel.Person;
 import ua.com.fielden.platform.sample.domain.TgJourney;
+import ua.com.fielden.platform.sample.domain.TgJourneyOverNightStay;
+import ua.com.fielden.platform.sample.domain.TgJourneyPurpose;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.web.PrefDim.Unit;
 import ua.com.fielden.platform.web.action.CentreConfigurationWebUiConfig.CentreConfigActions;
@@ -29,7 +32,7 @@ import ua.com.fielden.platform.web.view.master.api.impl.SimpleMasterBuilder;
 /**
  * {@link TgJourney} Web UI configuration.
  *
- * @author Developers
+ * @author TG Team
  *
  */
 public class TgJourneyWebUiConfig {
@@ -55,24 +58,40 @@ public class TgJourneyWebUiConfig {
      * @return created entity centre
      */
     private EntityCentre<TgJourney> createCentre(final Injector injector, final IWebUiBuilder builder) {
-        final String layout = LayoutComposer.mkGridForCentre(1, 2);
+        final String layout = LayoutComposer.mkVarGridForCentre(2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2);
 
-        final EntityActionConfig standardNewAction = StandardActions.NEW_ACTION.mkAction(TgJourney.class);
-        final EntityActionConfig standardDeleteAction = StandardActions.DELETE_ACTION.mkAction(TgJourney.class);
         final EntityActionConfig standardExportAction = StandardActions.EXPORT_ACTION.mkAction(TgJourney.class);
         final EntityActionConfig standardEditAction = StandardActions.EDIT_ACTION.mkAction(TgJourney.class);
         final EntityActionConfig standardSortAction = CentreConfigActions.CUSTOMISE_COLUMNS_ACTION.mkAction();
         builder.registerOpenMasterAction(TgJourney.class, standardEditAction);
 
         final EntityCentreConfig<TgJourney> ecc = EntityCentreBuilder.centreFor(TgJourney.class)
-                //.runAutomatically()
-//                .addFrontAction(standardNewAction)
-//                .addTopAction(standardNewAction).also()
-//                .addTopAction(standardDeleteAction).also()
-//                .addTopAction(standardSortAction).also()
-//                .addTopAction(standardExportAction)
+                .runAutomatically()
+                .addTopAction(standardSortAction).also()
+                .addTopAction(standardExportAction)
                 .addCrit("machine").asMulti().autocompleter(TgMachine.class).also()
-                .addCrit("desc").asMulti().text()
+                .addCrit("desc").asMulti().text().also()
+                .addCrit("startDate").asRange().dateTime().also()
+                .addCrit("finishDate").asRange().dateTime().also()
+                .addCrit("startOdometer").asRange().decimal().also()
+                .addCrit("finishOdometer").asRange().decimal().also()
+                .addCrit("startAddress").asMulti().text().also()
+                .addCrit("finishAddress").asMulti().text().also()
+                .addCrit("business").asMulti().bool().also()
+                .addCrit("distance").asRange().decimal().also()
+                .addCrit("businessDistance").asRange().decimal().also()
+                .addCrit("privateDistance").asRange().decimal().also()
+                .addCrit("driver").asMulti().autocompleter(Person.class).also()
+                .addCrit("purpose").asMulti().autocompleter(TgJourneyPurpose.class).also()
+                .addCrit("overNightStay").asMulti().autocompleter(TgJourneyOverNightStay.class).also()
+                .addCrit("active").asMulti().bool().also()
+                .addCrit("gnssOutageFinish").asMulti().bool().also()
+                .addCrit("preliminaryFinish").asMulti().bool().also()
+                .addCrit("preliminaryFinishResetByIgnitionOn").asMulti().bool().also()
+                .addCrit("startLatitude").asRange().decimal().also()
+                .addCrit("startLongitude").asRange().decimal().also()
+                .addCrit("finishLatitude").asRange().decimal().also()
+                .addCrit("finishLongitude").asRange().decimal()
                 .setLayoutFor(Device.DESKTOP, Optional.empty(), layout)
                 .setLayoutFor(Device.TABLET, Optional.empty(), layout)
                 .setLayoutFor(Device.MOBILE, Optional.empty(), layout)
