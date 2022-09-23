@@ -31,9 +31,31 @@ import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociationCo;
 import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.TgMessage;
 
+/**
+ * Processes {@link TgMessage}s and creates / updates {@link TgJourney} from them.
+ * It is designed to throw every collected GPS message to this processor and it will filter out unnecessary ones and do the right processing with the rest.
+ * Journeys then will be created / updated in a persisted form immediately during message creation (close to real time if message creation is also close to real time).
+ * 
+ * @author TG Team
+ *
+ */
 public class JourneyProcessor {
+    /**
+     * Ignition OFF timeout, set on Teltonika trackers, multiplied by 1.5 to increase the chance to cover all friction cases.
+     * The most timeouts are 59, 60, 61 seconds. But there was also 84 seconds.
+     */
     private final static int ignitionOffTimeout1_5 = 60 /* ignitionOffTimeout */ * 3 / 2 /* multiplier */ * 1000 /* millis in second */;
 
+    /**
+     * Creates (and updates) {@link TgJourney} instances from collection of {@link TgMessage}s.
+     * Please note that every message will be processed completely independently i.e. it is perfectly okay to invoke this method with single message in a collection.
+     * 
+     * @param messages
+     * @param machine
+     * @param journeyCo
+     * @param machineModuleAssociationCo
+     * @param machineDriverAssociationCo
+     */
     public static void createJourneysFrom(final Collection<TgMessage> messages, final TgMachine machine, final TgJourneyCo journeyCo, final ITgMachineModuleAssociation machineModuleAssociationCo, final TgMachineDriverAssociationCo machineDriverAssociationCo) {
         messages.stream().filter(
             message -> isJourneyStart(message) || isJourneyFinish(message) || isLowSpeedJourneyMessageWithIgnitionOn(message) || isJourneyFinishCausedByGnssOutage(message)
@@ -210,16 +232,41 @@ public class JourneyProcessor {
             && message.getVisibleSattelites() != null && message.getVisibleSattelites() == 0;
     }
 
+    /**
+     * Initial creation of {@link TgJourney} with {@code driver} and {@code machine}.
+     * 
+     * @param driver
+     * @param machine
+     * @param journeyCo
+     * @return
+     */
     private static TgJourney createJourney(final Person driver, final TgMachine machine, final TgJourneyCo journeyCo) {
         return journeyCo.new_()
             .setDriver(driver)
             .setMachine(machine);
     }
 
+    /**
+     * Creates odometer from {@code initOdometer} from machine-2-module association and {@link TgMessage#getTotalOdometer()}.
+     * 
+     * @param message
+     * @param initOdometer
+     * @return
+     */
     private static BigDecimal newOdometer(final TgMessage message, final Integer initOdometer) {
         return valueOf(initOdometer).setScale(2).add(valueOf(message.getTotalOdometer()).setScale(2).divide(valueOf(1000), HALF_UP));
     }
 
+    /**
+     * Updates props for 'start' or 'finish' ({@code propPrefix} of the Journey.
+     * 
+     * @param propPrefix
+     * @param journey
+     * @param message
+     * @param initOdometer
+     * @param address
+     * @return
+     */
     private static TgJourney updateInfo(final String propPrefix, final TgJourney journey, final TgMessage message, final Integer initOdometer, final String address) {
         return (TgJourney) journey
             .set(propPrefix + "Date", message.getGpsTime())
