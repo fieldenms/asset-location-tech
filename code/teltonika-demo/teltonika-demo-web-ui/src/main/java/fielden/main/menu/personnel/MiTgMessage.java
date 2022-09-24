@@ -1,4 +1,4 @@
-package ua.com.fielden.platform.ui.menu.sample;
+package fielden.main.menu.personnel;
 
 import ua.com.fielden.platform.entity.annotation.EntityType;
 import ua.com.fielden.platform.sample.domain.TgMessage;

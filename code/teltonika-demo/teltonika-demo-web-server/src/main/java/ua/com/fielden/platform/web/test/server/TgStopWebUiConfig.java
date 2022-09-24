@@ -10,11 +10,11 @@ import java.util.Optional;
 
 import com.google.inject.Injector;
 
+import fielden.main.menu.personnel.MiTgStop;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.sample.domain.TgOrgUnit;
 import ua.com.fielden.platform.sample.domain.TgStop;
 import ua.com.fielden.platform.sample.domain.TgStopMap;
-import ua.com.fielden.platform.ui.menu.sample.MiTgStop;
 import ua.com.fielden.platform.web.app.config.IWebUiBuilder;
 import ua.com.fielden.platform.web.centre.EntityCentre;
 import ua.com.fielden.platform.web.centre.api.EntityCentreConfig;

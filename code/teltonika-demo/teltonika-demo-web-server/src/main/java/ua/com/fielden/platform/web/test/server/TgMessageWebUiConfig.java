@@ -12,12 +12,12 @@ import com.google.inject.Injector;
 
 import fielden.common.LayoutComposer;
 import fielden.common.StandardActions;
+import fielden.main.menu.personnel.MiTgMessage;
 import ua.com.fielden.platform.sample.domain.TgJourney;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.sample.domain.TgMessage;
 import ua.com.fielden.platform.sample.domain.TgMessageMap;
 import ua.com.fielden.platform.sample.domain.TgMessageProducer;
-import ua.com.fielden.platform.ui.menu.sample.MiTgMessage;
 import ua.com.fielden.platform.web.action.CentreConfigurationWebUiConfig.CentreConfigActions;
 import ua.com.fielden.platform.web.app.config.IWebUiBuilder;
 import ua.com.fielden.platform.web.centre.EntityCentre;

@@ -33,7 +33,6 @@ public class DataPopulationApplicationServerModule extends ApplicationServerModu
         // bind machine monitor provider
         bind(ITransporterMachineMonitoringProvider.class).to(MockTransporterMachineMonitoringProvider.class).in(Scopes.SINGLETON);
         
-        //bindType(ITgMachine.class).to(TgMachineDao.class);
         CompanionObjectAutobinder.bindCo(TgMachine.class, binder());
         CompanionObjectAutobinder.bindCo(TgModule.class, binder());
         CompanionObjectAutobinder.bindCo(TgMachineModuleAssociation.class, binder());

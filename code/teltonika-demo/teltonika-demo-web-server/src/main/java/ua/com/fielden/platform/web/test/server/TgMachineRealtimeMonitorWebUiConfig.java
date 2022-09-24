@@ -9,10 +9,10 @@ import static ua.com.fielden.platform.web.centre.api.resultset.scrolling.impl.Sc
 
 import com.google.inject.Injector;
 
+import fielden.main.menu.personnel.MiTgMachineRealtimeMonitor;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.sample.domain.TgMachineRealtimeMonitorMap;
 import ua.com.fielden.platform.sample.domain.TgOrgUnit;
-import ua.com.fielden.platform.ui.menu.sample.MiTgMachineRealtimeMonitor;
 import ua.com.fielden.platform.utils.EntityUtils;
 import ua.com.fielden.platform.web.app.config.IWebUiBuilder;
 import ua.com.fielden.platform.web.centre.EntityCentre;

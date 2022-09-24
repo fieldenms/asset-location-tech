@@ -8,9 +8,9 @@ import java.util.Optional;
 
 import com.google.inject.Injector;
 
+import fielden.main.menu.personnel.MiTgPolygon;
 import ua.com.fielden.platform.sample.domain.TgPolygon;
 import ua.com.fielden.platform.sample.domain.TgPolygonMap;
-import ua.com.fielden.platform.ui.menu.sample.MiTgPolygon;
 import ua.com.fielden.platform.utils.EntityUtils;
 import ua.com.fielden.platform.web.app.config.IWebUiBuilder;
 import ua.com.fielden.platform.web.centre.EntityCentre;
