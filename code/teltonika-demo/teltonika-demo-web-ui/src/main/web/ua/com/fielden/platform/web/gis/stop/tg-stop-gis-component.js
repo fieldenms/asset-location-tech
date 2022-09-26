@@ -80,7 +80,6 @@ StopGisComponent.prototype.createPopupContent = function (feature) {
                 'Машина' + ': ' + this.valueToString(feature.get('machine')) + "<br>" +
                 'GPS час' + ': ' + this.valueToString(feature.get('gpsTime')) + "<br>" +
                 'Швидкість' + ': ' + this.valueToString(feature.get('vectorSpeed')) + "<br>" +
-                'Відстань' + ': ' + this.valueToString(feature.get('travelledDistance')) + "<br>" +
                 'Запалення?' + ': ' + this.valueToString(feature.get('din1'));
         } else if (featureType === 'Summary_TgMessage') {
             return 'Машина: ' + this.valueToString(feature.properties._machine);

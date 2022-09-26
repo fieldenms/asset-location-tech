@@ -62,14 +62,12 @@ public class TgMessageWebUiConfig {
                 + format("['justified', [%s]],", outer)
                 + format("['justified', [%s]],", outer)
                 + format("['justified', [%s]],", outer)
-                + format("['justified', [%s]],", outer)
                 + format("['justified', [%s]]", outer)
                 + "]");
         final String actionBarLayout = format("['horizontal', 'padding: 20px', 'wrap', 'justify-content: center', [%s],   [%s]]", actionStyle, actionStyle);
         final IMaster<TgMessage> masterConfig = masterBuilder.forEntity(TgMessage.class)
                 .addProp("machine").asAutocompleter().also()
                 .addProp("gpsTime").asDateTimePicker().also()
-                .addProp("travelledDistance").asDecimal().also()
                 .addProp("vectorAngle").asSpinner().also()
                 .addProp("vectorSpeed").asSpinner().also()
                 .addProp("x").asDecimal().also()
@@ -142,11 +140,6 @@ public class TgMessageWebUiConfig {
                 .also()
                 .addProp("packetReceived")
                     .width(90)
-                    //status
-                .also()
-                .addProp("travelledDistance")
-                    .width(100)
-                    .withSummary("_sumOfTravelledDistance", "SUM(travelledDistance) / 1000.0", "Відстань (км):Сумарна відстань у кілометрах, пройдена вибраною машиною за вибраний час.")
                 .also()
                 .addProp("gpsTime")
                     .order(2).asc()

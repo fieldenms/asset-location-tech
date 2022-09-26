@@ -1,7 +1,7 @@
 package ua.com.fielden.platform.sample.domain;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.util.Collections;
 
 import com.google.inject.Inject;
 
@@ -32,7 +32,7 @@ public class TgMessageDao extends CommonEntityDao<TgMessage> implements ITgMessa
     
     @Override
     protected IFetchProvider<TgMessage> createFetchProvider() {
-        return super.createFetchProvider().with("machine.desc", "gpsTime", "travelledDistance", "vectorAngle", "vectorSpeed", "x", "y");
+        return super.createFetchProvider().with("machine.desc", "gpsTime", "vectorAngle", "vectorSpeed", "x", "y");
     }
 
     @Override
@@ -71,7 +71,7 @@ public class TgMessageDao extends CommonEntityDao<TgMessage> implements ITgMessa
                 // If a purchase order item is being persisted some of its property validation might depend on the state of the associated work order.
                 // When this purchase order item was validated at the client side it might have been using a stale work order.
                 // In here revalidation occurs, which would definitely work with the latest data.
-                for (final String propName : Arrays.asList("travelledDistance" /* TODO "predecessor" does not exist */)) {
+                for (final String propName : Collections.<String>emptyList()) {
                     //          logger.error("is dirty: " + propName + " of " + getEntityType().getSimpleName() + " old = " + ((MetaProperty) obj).getOriginalValue() + " new = " + ((MetaProperty) obj).getValue());
                     final Object value = entity.get(propName);
                     // it is essential that if a property is of an entity type it should be re-associated with the current session before being set

@@ -8,15 +8,12 @@ import ua.com.fielden.platform.entity.DynamicEntityKey;
 import ua.com.fielden.platform.entity.annotation.CompositeKeyMember;
 import ua.com.fielden.platform.entity.annotation.EntityTitle;
 import ua.com.fielden.platform.entity.annotation.Ignore;
-import ua.com.fielden.platform.entity.annotation.Invisible;
 import ua.com.fielden.platform.entity.annotation.IsProperty;
 import ua.com.fielden.platform.entity.annotation.KeyTitle;
 import ua.com.fielden.platform.entity.annotation.KeyType;
 import ua.com.fielden.platform.entity.annotation.MapEntityTo;
 import ua.com.fielden.platform.entity.annotation.MapTo;
 import ua.com.fielden.platform.entity.annotation.Observable;
-import ua.com.fielden.platform.entity.annotation.Readonly;
-import ua.com.fielden.platform.entity.annotation.Required;
 import ua.com.fielden.platform.entity.annotation.Title;
 import ua.com.fielden.platform.entity.annotation.TransactionEntity;
 
@@ -91,25 +88,11 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
     @Title(value = "GNSS ON with fix?", desc = "Indicates whether GNSS module is ON with coordinates fix in place.")
     private boolean gpsPower;
 
-    @IsProperty(precision = 18, scale = 2)
-    @MapTo(value = "distance_")
-    // TODO
-    @Readonly
-    @Required
-    @Title(value = "Travelled Distance", desc = "Відстань в метрах, яку було пройдено машиною з моменту отримання попереднього повідомлення.")
-    private BigDecimal travelledDistance;
-
     @IsProperty
     @Ignore
     @MapTo("packet_")
     @Title(value = "Packet received date")
     private Date packetReceived;
-
-    @IsProperty
-    @MapTo
-    @Ignore
-    @Invisible
-    private Integer status;
 
     @IsProperty
     @MapTo
@@ -172,16 +155,6 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
     }
 
     @Observable
-    public AbstractAvlMessage setStatus(final Integer status) {
-        this.status = status;
-        return this;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    @Observable
     public AbstractAvlMessage setPacketReceived(final Date packetReceived) {
         this.packetReceived = packetReceived;
         return this;
@@ -189,16 +162,6 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
 
     public Date getPacketReceived() {
         return packetReceived;
-    }
-
-    @Observable
-    public AbstractAvlMessage setTravelledDistance(final BigDecimal travelledDistance) {
-        this.travelledDistance = travelledDistance;
-        return this;
-    }
-
-    public BigDecimal getTravelledDistance() {
-        return travelledDistance;
     }
 
     @Observable

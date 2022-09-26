@@ -17,7 +17,6 @@ import ua.com.fielden.platform.gis.gps.actors.AbstractActors;
 import ua.com.fielden.platform.gis.gps.actors.impl.Actors;
 import ua.com.fielden.platform.gis.gps.actors.impl.MachineActor;
 import ua.com.fielden.platform.gis.gps.actors.impl.ModuleActor;
-import ua.com.fielden.platform.gis.gps.actors.impl.ViolatingMessageResolverActor;
 import ua.com.fielden.platform.gis.gps.factory.impl.AbstractTransporterApplicationConfigurationUtil;
 import ua.com.fielden.platform.ioc.ApplicationInjectorFactory;
 import ua.com.fielden.platform.ioc.NewUserEmailNotifierBindingModule;
@@ -90,17 +89,10 @@ public class ApplicationConfiguration extends Component {
                             webApp
                             ));
 
-            final boolean emergencyMode = props.getProperty("mode").equalsIgnoreCase("emergency");
-            final Integer windowSize = Integer.valueOf(props.getProperty("windowSize"));
-            final Integer windowSize2 = Integer.valueOf(props.getProperty("windowSize2"));
-            final Integer windowSize3 = Integer.valueOf(props.getProperty("windowSize3"));
-            final Double thresh = Double.valueOf(props.getProperty("averagePacketSizeThreshould"));
-            final Double thresh2 = Double.valueOf(props.getProperty("averagePacketSizeThreshould2"));
-
             new AbstractTransporterApplicationConfigurationUtil() {
                 @Override
-                protected AbstractActors<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor, ViolatingMessageResolverActor> createActors(final Map<TgMachine, TgMessage> machinesWithLastMessages, final Map<TgModule, List<TgMachineModuleAssociation>> modulesWithAssociations) {
-                    return new Actors(injector, machinesWithLastMessages, modulesWithAssociations, props.getProperty("gps.host"), Integer.valueOf(props.getProperty("gps.port")), emergencyMode, windowSize, windowSize2, windowSize3, thresh, thresh2);
+                protected AbstractActors<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor> createActors(final Map<TgMachine, TgMessage> machinesWithLastMessages, final Map<TgModule, List<TgMachineModuleAssociation>> modulesWithAssociations) {
+                    return new Actors(injector, machinesWithLastMessages, modulesWithAssociations, props.getProperty("gps.host"), Integer.valueOf(props.getProperty("gps.port")));
                 }
             }
             .startGpsServices(props, injector);

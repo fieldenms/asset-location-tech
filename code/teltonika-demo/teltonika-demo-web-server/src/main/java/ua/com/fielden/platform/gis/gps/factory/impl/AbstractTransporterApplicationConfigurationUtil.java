@@ -19,7 +19,6 @@ import ua.com.fielden.platform.gis.gps.actors.AbstractActors;
 import ua.com.fielden.platform.gis.gps.actors.impl.MachineActor;
 import ua.com.fielden.platform.gis.gps.actors.impl.ModuleActor;
 import ua.com.fielden.platform.gis.gps.actors.impl.TransporterMachineMonitoringProvider;
-import ua.com.fielden.platform.gis.gps.actors.impl.ViolatingMessageResolverActor;
 import ua.com.fielden.platform.gis.gps.factory.ApplicationConfigurationUtil;
 import ua.com.fielden.platform.gis.gps.monitoring.impl.ITransporterMachineMonitoringProvider;
 import ua.com.fielden.platform.sample.domain.ITgMachine;
@@ -32,7 +31,7 @@ import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociationDao;
 import ua.com.fielden.platform.sample.domain.TgMessage;
 import ua.com.fielden.platform.sample.domain.TgModule;
 
-public abstract class AbstractTransporterApplicationConfigurationUtil extends ApplicationConfigurationUtil<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor, ViolatingMessageResolverActor> {
+public abstract class AbstractTransporterApplicationConfigurationUtil extends ApplicationConfigurationUtil<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor> {
 
     private Map<TgMachine, TgMessage> readLastMessages(final ITgMessage coMessage) {
         final AggregatedResultQueryModel lastGpsTimePerMachine = select(TgMessage.class). //
@@ -111,8 +110,9 @@ public abstract class AbstractTransporterApplicationConfigurationUtil extends Ap
     };
 
     @Override
-    protected void promoteActors(final Injector injector, final AbstractActors<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor, ViolatingMessageResolverActor> actors) {
+    protected void promoteActors(final Injector injector, final AbstractActors<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor> actors) {
         final TransporterMachineMonitoringProvider mmProvider = (TransporterMachineMonitoringProvider) injector.getInstance(ITransporterMachineMonitoringProvider.class);
         mmProvider.setActors(actors);
     }
+
 }

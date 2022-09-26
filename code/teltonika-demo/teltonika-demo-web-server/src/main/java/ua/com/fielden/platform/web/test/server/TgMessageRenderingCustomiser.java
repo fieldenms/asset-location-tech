@@ -16,7 +16,6 @@ public class TgMessageRenderingCustomiser implements IRenderingCustomiser<Map<St
             add("machine");
             add("gpsTime");
             add("vectorSpeed");
-            add("travelledDistance");
             add("din1");
             add("ignition");
             add("totalOdometer");

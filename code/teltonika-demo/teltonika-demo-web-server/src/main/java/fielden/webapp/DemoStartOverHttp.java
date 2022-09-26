@@ -33,16 +33,6 @@ public class DemoStartOverHttp {
             props.load(st);
         }
 
-        try {
-            final boolean startupProcessing = props.getProperty("startup.processing").equalsIgnoreCase("true");
-            if (startupProcessing) {
-                StartupSpike.start(props.getProperty("hibernate.connection.url"), props.getProperty("hibernate.connection.username"), props.getProperty("hibernate.connection.password"));
-            }
-        } catch (final Exception e1) {
-            LOGGER.error(e1.getMessage(), e1);
-            throw new RuntimeException(e1);
-        }
-
         /*
          * Let's use non-strict-model verification for instrumented entities in deployment.
          */
