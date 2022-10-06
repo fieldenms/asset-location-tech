@@ -210,7 +210,7 @@ public class JourneyProcessor {
     private static boolean isLowSpeedJourneyMessageWithIgnitionOn(final TgMessage message) {
         return !message.isTrip() // Journey start messages should not be considered (unlikely combination, but possible)
             && message.getIgnition() // ignition ON is base condition
-            && message.getVectorSpeed() != null && message.getVectorSpeed() >= 0 && message.getVectorSpeed() <= 5 // sometimes speed is greater than zero but still low; we take such messages to increase the chance of always getting ignition ON messages within Ignition OFF timeout
+            && message.getVectorSpeed() != null && message.getVectorSpeed() >= 0 && message.getVectorSpeed() <= 15 // sometimes speed is greater than zero but still low; we take such messages to increase the chance of always getting ignition ON messages within Ignition OFF timeout
             && message.getTripOdometer() != null && message.getTripOdometer() > 0; // trip odometer must have `Continuous` mode enabled and, when Trip, it is always > 0
     }
 
