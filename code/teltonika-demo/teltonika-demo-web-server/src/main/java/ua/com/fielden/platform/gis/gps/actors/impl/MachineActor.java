@@ -18,7 +18,6 @@ import akka.actor.ActorRef;
 import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.gps.actors.AbstractAvlMachineActor;
 import ua.com.fielden.platform.persistence.HibernateUtil;
-import ua.com.fielden.platform.sample.domain.ITgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.TgJourneyCo;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociationCo;
@@ -34,13 +33,11 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
     private final Logger logger = getLogger(MachineActor.class);
 
     private final TgJourneyCo journeyCo;
-    private final ITgMachineModuleAssociation machineModuleAssociationCo;
     private final TgMachineDriverAssociationCo machineDriverAssociationCo;
 
-    public MachineActor(final EntityFactory factory, final TgMachine machine, final TgMessage latestGpsMessage, final HibernateUtil hibUtil, final TgJourneyCo journeyCo, final ITgMachineModuleAssociation machineModuleAssociationCo, final TgMachineDriverAssociationCo machineDriverAssociationCo, final ActorRef machinesCounterRef) {
+    public MachineActor(final EntityFactory factory, final TgMachine machine, final TgMessage latestGpsMessage, final HibernateUtil hibUtil, final TgJourneyCo journeyCo, final TgMachineDriverAssociationCo machineDriverAssociationCo, final ActorRef machinesCounterRef) {
         super(factory, machine, latestGpsMessage, hibUtil, machinesCounterRef);
         this.journeyCo = journeyCo;
-        this.machineModuleAssociationCo = machineModuleAssociationCo;
         this.machineDriverAssociationCo = machineDriverAssociationCo;
     }
 
@@ -94,7 +91,7 @@ public class MachineActor extends AbstractAvlMachineActor<TgMessage, TgMachine> 
         }
 
         // process messages immediately and create / update Journeys from them
-        createJourneysFrom(messages, getMachine(), journeyCo, machineModuleAssociationCo, machineDriverAssociationCo);
+        createJourneysFrom(messages, getMachine(), journeyCo, machineDriverAssociationCo);
     }
 
     protected static void assignValuesToParams(final PreparedStatement batchInsertStmt, final TgMessage message, final Session session) throws Exception {

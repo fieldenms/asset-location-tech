@@ -21,7 +21,6 @@ import ua.com.fielden.platform.devdb_support.DomainDrivenDataPopulation;
 import ua.com.fielden.platform.entity.AbstractEntity;
 import ua.com.fielden.platform.gis.gps.actors.impl.JourneyProcessor;
 import ua.com.fielden.platform.sample.domain.ITgMachine;
-import ua.com.fielden.platform.sample.domain.ITgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.ITgMessage;
 import ua.com.fielden.platform.sample.domain.TgJourneyCo;
 import ua.com.fielden.platform.sample.domain.TgMachine;
@@ -91,7 +90,6 @@ public class PopulateDb extends DomainDrivenDataPopulation {
                 asList(message),
                 getInstance(ITgMachine.class).getEntity(from(select(TgMachine.class).model()).with(fetchAll(TgMachine.class)).model()),
                 getInstance(TgJourneyCo.class),
-                getInstance(ITgMachineModuleAssociation.class),
                 getInstance(TgMachineDriverAssociationCo.class)
             ));
         }
