@@ -1,0 +1,2 @@
+This is a folder for the source code.
+It is expected that could be multiple sub-projects, potentially independent.

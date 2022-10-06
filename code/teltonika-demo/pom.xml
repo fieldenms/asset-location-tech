@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>fielden</groupId>
+	<artifactId>teltonika-demo</artifactId>
+	<packaging>pom</packaging>
+	<version>1.0-SNAPSHOT</version>
+
+	<name>Teltonika Demo (Legacy) Parent Project</name>
+	<description>This is parent POM project.</description>
+	<url>none</url>
+	<inceptionYear>2021</inceptionYear>
+	<organization>
+		<name>Fielden Management Services Pty. Ltd.</name>
+		<url>https://teltonika-demo.com.au</url>
+	</organization>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<platform.version>1.4.6-SNAPSHOT</platform.version>
+	</properties>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.8.1</version>
+					<configuration>
+						<release>17</release>
+						<encoding>UTF-8</encoding>
+						<optimize>true</optimize>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+  <modules>
+    <module>teltonika-demo-dao</module>
+    <module>teltonika-demo-pojo-bl</module>
+    <module>teltonika-demo-web-ui</module>
+    <module>teltonika-demo-web-server</module>
+  </modules>
+</project>
