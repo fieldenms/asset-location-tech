@@ -26,7 +26,7 @@ import ua.com.fielden.platform.sample.domain.TgModule;
 public class ModuleActor extends AbstractAvlModuleActor<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation> {
     private final Logger logger = getLogger(ModuleActor.class);
 
-    public ModuleActor(final EntityFactory factory, final TgModule module, final List<TgMachineModuleAssociation> machineAssociations, final HibernateUtil hibUtil, final ActorRef modulesCounterRef, final AbstractActors<?, ?, ?, ?, ?, ?, ?> actors) {
+    public ModuleActor(final EntityFactory factory, final TgModule module, final List<TgMachineModuleAssociation> machineAssociations, final HibernateUtil hibUtil, final ActorRef modulesCounterRef, final AbstractActors<?, ?, ?, ?, ?, ?> actors) {
         super(factory, module, machineAssociations, hibUtil, modulesCounterRef, actors);
     }
 

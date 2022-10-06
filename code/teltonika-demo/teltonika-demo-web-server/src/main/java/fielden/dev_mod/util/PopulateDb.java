@@ -160,7 +160,6 @@ public class PopulateDb extends DomainDrivenDataPopulation {
 //                        // .setVisibleSattelites(2)
 //                        .setDin1((boolean) messageProps.get("din1"))
 //                        .setGpsPower((boolean) messageProps.get("gpsPower"))
-//                        .setTravelledDistance(BigDecimal.valueOf((double) messageProps.get("travelledDistance")))
 //                );
 //            }
 //        } catch (final IOException ex) {
@@ -212,7 +211,6 @@ public class PopulateDb extends DomainDrivenDataPopulation {
 //                            // .setVisibleSattelites(2)
 //                            .setDin1((boolean) lastMessageProps.get("din1"))
 //                            .setGpsPower((boolean) lastMessageProps.get("gpsPower"))
-//                            .setTravelledDistance(BigDecimal.valueOf(15.5)) // lastMessageProps.get("travelledDistance")
 //                    );
 //                }
 //            }

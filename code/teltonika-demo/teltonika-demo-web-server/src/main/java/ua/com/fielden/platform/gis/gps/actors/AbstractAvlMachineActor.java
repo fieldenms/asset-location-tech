@@ -5,8 +5,6 @@ import static org.apache.logging.log4j.LogManager.getLogger;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedList;
 
 import org.apache.logging.log4j.Logger;
 
@@ -16,10 +14,7 @@ import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.MapUtils;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
-import ua.com.fielden.platform.gis.gps.MachineServerState;
 import ua.com.fielden.platform.persistence.HibernateUtil;
-import ua.com.fielden.platform.utils.EntityUtils;
-import ua.com.fielden.platform.utils.Pair;
 
 /**
  * This actor is responsible for messages processing for concrete machine.
@@ -30,43 +25,19 @@ import ua.com.fielden.platform.utils.Pair;
 public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>> extends UntypedActor {
     private final MessagesComparator<MESSAGE> messagesComparator;
     protected static int jdbcInsertBatchSize = 100;
-    private final int windowSize;
-    private final int windowSize2;
-    private final int windowSize3;
-    private final double averagePacketSizeThreshould;
-    private final double averagePacketSizeThreshould2;
     protected static final Logger LOGGER = getLogger(AbstractAvlMachineActor.class);
 
     private MACHINE machine;
-    private final LinkedList<Packet<MESSAGE>> incomingPackets = new LinkedList<>();
-    private final LinkedList<Packet<MESSAGE>> inspectionBuffer = new LinkedList<>();
-    private final Blackout<MESSAGE> blackout;
     private MESSAGE latestGpsMessage;
-    private MESSAGE lastProcessedMessage;
     private final HibernateUtil hibUtil;
     private ActorRef machinesCounterRef;
-    private final ActorRef violatingMessageResolverRef;
-    private final boolean emergencyMode;
 
-    public AbstractAvlMachineActor(final EntityFactory factory, final MACHINE machine, final MESSAGE lastMessage, final HibernateUtil hibUtil, final ActorRef machinesCounterRef, final ActorRef violatingMessageResolverRef, final boolean emergencyMode, final int windowSize, final int windowSize2, final int windowSize3, final double averagePacketSizeThreshould, final double averagePacketSizeThreshould2) {
+    public AbstractAvlMachineActor(final EntityFactory factory, final MACHINE machine, final MESSAGE latestGpsMessage, final HibernateUtil hibUtil, final ActorRef machinesCounterRef) {
         this.machinesCounterRef = machinesCounterRef;
-        this.violatingMessageResolverRef = violatingMessageResolverRef;
-
-        messagesComparator = new MessagesComparator<MESSAGE>();
-        blackout = new Blackout<MESSAGE>(messagesComparator);
-
+        this.messagesComparator = new MessagesComparator<MESSAGE>();
         this.machine = machine;
-        this.latestGpsMessage = lastMessage;
-        this.lastProcessedMessage = lastMessage;
-
+        this.latestGpsMessage = latestGpsMessage;
         this.hibUtil = hibUtil;
-        // do not forget to invoke processTempMessages()!
-        this.emergencyMode = emergencyMode;
-        this.windowSize = windowSize;
-        this.windowSize2 = windowSize2;
-        this.windowSize3 = windowSize3;
-        this.averagePacketSizeThreshould = averagePacketSizeThreshould;
-        this.averagePacketSizeThreshould2 = averagePacketSizeThreshould2;
     }
 
     @Override
@@ -77,106 +48,18 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
         machinesCounterRef = null;
     }
 
-    protected abstract void processTempMessages(final MACHINE machine) throws Exception;
-
-    protected abstract void persistTemporarily(final Packet<MESSAGE> packet) throws Exception;
-
-    protected abstract void persist(final Collection<MESSAGE> messages, final MESSAGE latestPersistedMessage) throws Exception;
-
-    protected abstract void persistEmergently(final Collection<MESSAGE> messages) throws Exception;
-
-    private Pair<Packet<MESSAGE>, Packet<MESSAGE>> categoriseByViolations(final Packet<MESSAGE> packet, final MESSAGE lastProcesseMessage) {
-        if (lastProcesseMessage == null) {
-            return new Pair<Packet<MESSAGE>, Packet<MESSAGE>>(packet, null);
-        }
-
-        final Packet<MESSAGE> goodPart = new Packet<MESSAGE>(new Date(packet.getCreated()), messagesComparator);
-        final Packet<MESSAGE> badPart = new Packet<MESSAGE>(new Date(packet.getCreated()), messagesComparator);
-
-        for (final MESSAGE message : packet.getMessages()) {
-            if (message.getGpsTime().getTime() <= lastProcesseMessage.getGpsTime().getTime()) {
-                badPart.add(message);
-            } else {
-                goodPart.add(message);
-            }
-        }
-
-        return new Pair<Packet<MESSAGE>, Packet<MESSAGE>>(goodPart, badPart);
-    }
+    protected abstract void persist(final Collection<MESSAGE> messages) throws Exception;
 
     protected final void processSinglePacket(final Packet<MESSAGE> originalPacket, final boolean onStart) throws Exception {
-        if (isEmergencyMode()) { // move all the messages into emergency-mode-messages table and maintain the last message on the actor as usual
-            if (!originalPacket.isEmpty()) {
-                if (latestGpsMessage == null || latestGpsMessage.getGpsTime().getTime() < originalPacket.getFinish().getGpsTime().getTime()) {
-                    latestGpsMessage = originalPacket.getFinish();
-                }
-
-                persistEmergently(originalPacket.getMessages());
+        final Packet<MESSAGE> packet = originalPacket;
+        if (!packet.isEmpty()) {
+            if (latestGpsMessage == null || latestGpsMessage.getGpsTime().getTime() < packet.getFinish().getGpsTime().getTime()) {
+                final MESSAGE oldLatestGpsMessage = latestGpsMessage;
+                latestGpsMessage = packet.getFinish();
+                processLatestGpsMessage(oldLatestGpsMessage, latestGpsMessage);
             }
-        } else {
-            final Pair<Packet<MESSAGE>, Packet<MESSAGE>> categorisedByViolations = categoriseByViolations(originalPacket, lastProcessedMessage);
-            final Packet<MESSAGE> packetWithViolatingMessages = categorisedByViolations.getValue();
-            if (packetWithViolatingMessages != null && !packetWithViolatingMessages.isEmpty()) {
-
-                // if there are some violating messages -- send them to ViolatingMessageResolverActor
-                violatingMessageResolverRef.tell(packetWithViolatingMessages, getSelf());
-            }
-
-            final Packet<MESSAGE> packet = categorisedByViolations.getKey();
-
-            if (!packet.isEmpty()) {
-
-                if (latestGpsMessage != null && latestGpsMessage.getGpsTime().getTime() > packet.getStart().getGpsTime().getTime()) {
-                    for (final MESSAGE message : packet.getMessages()) {
-                        if (message.getGpsTime().getTime() < latestGpsMessage.getGpsTime().getTime()) {
-                            message.setStatus(1);
-                        }
-                    }
-                }
-
-                if (latestGpsMessage == null || latestGpsMessage.getGpsTime().getTime() < packet.getFinish().getGpsTime().getTime()) {
-                    final MESSAGE oldLatestGpsMessage = latestGpsMessage;
-                    latestGpsMessage = packet.getFinish();
-                    processLatestGpsMessage(oldLatestGpsMessage, latestGpsMessage);
-                }
-
-                if (!onStart) {
-                    persistTemporarily(packet);
-                }
-
-                incomingPackets.add(packet);
-                if (fillBuffer()) {
-                    final Packet<MESSAGE> first = inspectionBuffer.poll();
-
-                    if (blackout.getFinish() != null && blackout.getFinish().getGpsTime().getTime() >= first.getStart().getGpsTime().getTime()) {
-                        blackout.add(first);
-                    } else {
-                        final int maximumIndexOfPacketBreakingChronologyOfFirstPacket = findMaximumIndexOfPacketBreakingChronologyOfGivenPacket(first);
-                        final boolean blackoutHappened = maximumIndexOfPacketBreakingChronologyOfFirstPacket != -1;
-                        if (blackoutHappened) {
-                            blackout.add(first);
-                            moveFirstPacketsFromBufferIntoBlackout(maximumIndexOfPacketBreakingChronologyOfFirstPacket + 1);
-                        } else {
-                            final int chronologyBreakingIndex = findMaximumIndexOfNeighboringChronologyBreakingPacket();
-                            final boolean validationSucceeded = chronologyBreakingIndex == -1;
-
-                            if (validationSucceeded) {
-                                if (blackout.getMessages().size() > 0) {
-                                    final MESSAGE blackoutLastMessage = blackout.getFinish();
-                                    final MESSAGE blackoutStart = blackout.getStart();
-                                    final Collection<MESSAGE> messages = blackout.reset();
-                                    persist(messages, lastProcessedMessage);
-                                    lastProcessedMessage = blackoutLastMessage;
-                                }
-                                persist(first.getMessages(), lastProcessedMessage);
-                                lastProcessedMessage = first.getFinish();
-                            } else {
-                                blackout.add(first);
-                                moveFirstPacketsFromBufferIntoBlackout(chronologyBreakingIndex + 1);
-                            }
-                        }
-                    }
-                }
+            if (!onStart) {
+                persist(packet.getMessages());
             }
         }
     }
@@ -199,21 +82,13 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
                     completeMessage(message);
                 }
                 processSinglePacket(packet, false);
-            } else if (data instanceof LastMessagesRequest lastMessageRequest) {
+            } else if (data instanceof final LastMessagesRequest lastMessageRequest) {
                 if (latestGpsMessage != null
                         && (lastMessageRequest.getAfterDate() == null || latestGpsMessage.getGpsTime().getTime() > lastMessageRequest.getAfterDate().getTime())) {
                     final MESSAGE lastMessage = completeMessageCopy(produceIncompleteLastMessage(latestGpsMessage), latestGpsMessage);
                     getSender().tell(new LastMessage<MESSAGE>(lastMessageRequest.getMachineId(), lastMessage), getSelf());
                 } else {
                     getSender().tell(new NoLastMessage(), getSelf());
-                }
-            } else if (data instanceof LastServerStateRequest lastServerStateRequest) {
-                final MachineServerState latestServerState = extractServerState();
-
-                if (!EntityUtils.equalsEx(latestServerState, lastServerStateRequest.getOldServerState())) {
-                    getSender().tell(new ServerState(lastServerStateRequest.getMachineId(), latestServerState), getSelf());
-                } else {
-                    getSender().tell(new NoServerState(), getSelf());
                 }
             } else if (data instanceof Changed) {
                 promoteChangedMachine((Changed<MACHINE>) data);
@@ -224,10 +99,6 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
             LOGGER.error(e.getMessage(), e);
             throw e;
         }
-    }
-
-    private MachineServerState extractServerState() {
-        return new MachineServerState().setBlackoutSize(blackout.getMessages().size()).setDummy("DUMMY");
     }
 
     protected void promoteChangedMachine(final Changed<MACHINE> changedMachine) {
@@ -242,7 +113,6 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
         copy.setVectorSpeed(message.getVectorSpeed());
         copy.setVectorAngle(message.getVectorAngle());
         copy.setGpsTime(message.getGpsTime());
-        copy.setTravelledDistance(message.getTravelledDistance());
         return copy;
     }
 
@@ -251,76 +121,6 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
                 prevMessage.getY(), //
                 currMessage.getX(), //
                 currMessage.getY())).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private int findMaximumIndexOfPacketBreakingChronologyOfGivenPacket(final Packet<MESSAGE> firstPacket) {
-        for (int i = inspectionBuffer.size() - 1; i >= 0; i--) {
-            final Packet<MESSAGE> currPacket = inspectionBuffer.get(i);
-            if (!(currPacket.getStart().getGpsTime().getTime() > firstPacket.getFinish().getGpsTime().getTime())) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private int findMaximumIndexOfNeighboringChronologyBreakingPacket() {
-        Date prevPacketStart = inspectionBuffer.get(inspectionBuffer.size() - 1).getStart().getGpsTime();
-        for (int i = inspectionBuffer.size() - 2; i >= 0; i--) {
-            final Packet<MESSAGE> currPacket = inspectionBuffer.get(i);
-            if (!(currPacket.getFinish().getGpsTime().getTime() < prevPacketStart.getTime())) {
-                return i + 1;
-            }
-            prevPacketStart = currPacket.getStart().getGpsTime();
-        }
-        return -1;
-    }
-
-    private void moveFirstPacketsFromBufferIntoBlackout(final int qty) {
-        for (int index = 0; index < qty; index++) {
-            final Packet<MESSAGE> packet = inspectionBuffer.poll();
-            blackout.add(packet);
-        }
-    }
-
-    private boolean fillBuffer() {
-        int index = 1;
-        final int limit = calcNewWindowSize(calcAvgPacketSize()) - inspectionBuffer.size();
-
-        while (index <= limit) {
-            final Packet<MESSAGE> p = incomingPackets.poll();
-            if (p != null) {
-                inspectionBuffer.add(p);
-            } else {
-                return false;
-            }
-
-            index = index + 1;
-        }
-        return true;
-    }
-
-    private float calcAvgPacketSize() {
-        if (inspectionBuffer.size() == 0) {
-            return 0;
-        }
-
-        Integer totalSize = 0;
-        for (final Packet<MESSAGE> packet : inspectionBuffer) {
-            totalSize = totalSize + packet.getMessages().size();
-        }
-        return totalSize / inspectionBuffer.size();
-    }
-
-    private int calcNewWindowSize(final float recentAvgPacketSize) {
-        if (recentAvgPacketSize < averagePacketSizeThreshould) {
-            return windowSize;
-        } else {
-            if (recentAvgPacketSize < averagePacketSizeThreshould2) {
-                return windowSize2;
-            } else {
-                return windowSize3;
-            }
-        }
     }
 
     /**
@@ -362,12 +162,4 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
         return messagesComparator;
     }
 
-    /**
-     * Indicates that the actor is running in emergency mode and thus is processing messages in some specific way.
-     *
-     * @return
-     */
-    public boolean isEmergencyMode() {
-        return emergencyMode;
-    }
 }

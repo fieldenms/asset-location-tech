@@ -57,21 +57,6 @@ public abstract class AbstractAvlMachine<T extends AbstractAvlMessage> extends A
     @Title(value = "Title", desc = "Desc")
     private boolean ignitionTracked;
 
-    @IsProperty
-    // just a calculated manually @MapTo
-    @Title(value = "Last Server State", desc = "Last Server State")
-    private MachineServerState lastServerState;
-
-    @Observable
-    public AbstractAvlMachine<T> setLastServerState(final MachineServerState lastServerState) {
-        this.lastServerState = lastServerState;
-        return this;
-    }
-
-    public MachineServerState getLastServerState() {
-        return lastServerState;
-    }
-
     @Observable
     public AbstractAvlMachine<T> setIgnitionTracked(final boolean ignitionTracked) {
         this.ignitionTracked = ignitionTracked;

@@ -10,7 +10,6 @@ import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.gps.actors.AbstractActors;
 import ua.com.fielden.platform.persistence.HibernateUtil;
 import ua.com.fielden.platform.sample.domain.ITgMachineModuleAssociation;
-import ua.com.fielden.platform.sample.domain.ITgMessage;
 import ua.com.fielden.platform.sample.domain.TgJourneyCo;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociationCo;
@@ -24,7 +23,7 @@ import ua.com.fielden.platform.sample.domain.TgModule;
  * @author TG Team
  *
  */
-public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor, ViolatingMessageResolverActor> {
+public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMachineModuleAssociation, MachineActor, ModuleActor> {
     /**
      * Creates an actor system responsible for processing messages and getting efficiently a state from it (e.g. last machine message).
      *
@@ -33,29 +32,21 @@ public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMac
      * @param machines
      *            -- a current machines in a system (creating of a new machine is not supported yet)
      */
-    public Actors(final Injector injector, final Map<TgMachine, TgMessage> machinesWithLastMessages, final Map<TgModule, List<TgMachineModuleAssociation>> modulesWithAssociations, final String gpsHost, final Integer gpsPort, final boolean emergencyMode, final int windowSize, final int windowSize2, final int windowSize3, final double averagePacketSizeThreshould, final double averagePacketSizeThreshould2) {
-        super(injector, machinesWithLastMessages, modulesWithAssociations, gpsHost, gpsPort, emergencyMode, windowSize, windowSize2, windowSize3, averagePacketSizeThreshould, averagePacketSizeThreshould2);
+    public Actors(final Injector injector, final Map<TgMachine, TgMessage> machinesWithLastMessages, final Map<TgModule, List<TgMachineModuleAssociation>> modulesWithAssociations, final String gpsHost, final Integer gpsPort) {
+        super(injector, machinesWithLastMessages, modulesWithAssociations, gpsHost, gpsPort);
     }
 
     @Override
-    protected MachineActor createMachineActor(final Injector injector, final TgMachine machine, final TgMessage lastMessage, final ActorRef machinesCounterRef, final ActorRef violatingMessageResolverRef) {
+    protected MachineActor createMachineActor(final Injector injector, final TgMachine machine, final TgMessage lastMessage, final ActorRef machinesCounterRef) {
         return new MachineActor(
                 injector.getInstance(EntityFactory.class),
                 machine,
                 lastMessage,
                 injector.getInstance(HibernateUtil.class),
-                injector.getInstance(ITgMessage.class),
                 injector.getInstance(TgJourneyCo.class),
                 injector.getInstance(ITgMachineModuleAssociation.class),
                 injector.getInstance(TgMachineDriverAssociationCo.class),
-                machinesCounterRef,
-                violatingMessageResolverRef,
-                isEmergencyMode(),
-                windowSize(),
-                windowSize2(),
-                windowSize3(),
-                averagePacketSizeThreshould(),
-                averagePacketSizeThreshould2());
+                machinesCounterRef);
     }
 
     @Override
@@ -67,11 +58,6 @@ public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMac
                 injector.getInstance(HibernateUtil.class),
                 modulesCounterRef,
                 this);
-    }
-
-    @Override
-    protected ViolatingMessageResolverActor createViolatingMessageResolverActor(final Injector injector) {
-        return new ViolatingMessageResolverActor(injector.getInstance(HibernateUtil.class), injector.getInstance(ITgMessage.class));
     }
 
     @Override
