@@ -22,13 +22,11 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fielden.personnel.Person;
-import ua.com.fielden.platform.sample.domain.ITgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.TgJourney;
 import ua.com.fielden.platform.sample.domain.TgJourneyCo;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociation;
 import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociationCo;
-import ua.com.fielden.platform.sample.domain.TgMachineModuleAssociation;
 import ua.com.fielden.platform.sample.domain.TgMessage;
 
 /**
@@ -53,10 +51,9 @@ public class JourneyProcessor {
      * @param messages
      * @param machine
      * @param journeyCo
-     * @param machineModuleAssociationCo
      * @param machineDriverAssociationCo
      */
-    public static void createJourneysFrom(final Collection<TgMessage> messages, final TgMachine machine, final TgJourneyCo journeyCo, final ITgMachineModuleAssociation machineModuleAssociationCo, final TgMachineDriverAssociationCo machineDriverAssociationCo) {
+    public static void createJourneysFrom(final Collection<TgMessage> messages, final TgMachine machine, final TgJourneyCo journeyCo, final TgMachineDriverAssociationCo machineDriverAssociationCo) {
         messages.stream().filter(
             message -> isJourneyStart(message) || isJourneyFinish(message) || isLowSpeedJourneyMessageWithIgnitionOn(message) || isJourneyFinishCausedByGnssOutage(message)
         ).forEach(message -> {
@@ -76,19 +73,6 @@ public class JourneyProcessor {
                     journeyCo.save(journey.setPreliminaryFinishResetByIgnitionOn(true)); // ... mark the journey to not close it fully when the next journey finish arrives (even within timeout)
                 });
             } else {
-                final var initOdometer = machineModuleAssociationCo
-                    .getEntityOptional(
-                        from(select(TgMachineModuleAssociation.class).where()
-                            .prop("machine").eq().val(machine)
-                            .and().prop("from").le().val(message.getGpsTime())
-                            .and().begin().prop("to").isNull().or().prop("to").gt().val(message.getGpsTime()).end()
-                            .model()
-                        )
-                        .with(fetchWithKeyAndDesc(TgMachineModuleAssociation.class).with("initOdometer").fetchModel())
-                        .model()
-                    ) // only one instance is expected (if history is correct; also note that 'messages' got sent to this machine actor, that means that machineModuleAssociation should exist for that machine for all gpsTimes)
-                    .map(TgMachineModuleAssociation::getInitOdometer)
-                    .orElse(0);
                 final var driver = machineDriverAssociationCo
                     .getEntityOptional(
                         from(select(TgMachineDriverAssociation.class).where()
@@ -124,7 +108,7 @@ public class JourneyProcessor {
                         ? createJourney(driver, machine, journeyCo)
                         // otherwise update start for the earliest period
                         : journeyOpt.get();
-                    journeyCo.save(updateInfo("start", targetJourney, message, initOdometer, address));
+                    journeyCo.save(updateInfo("start", targetJourney, message, address));
                 } else { // journey finish detected (maybe caused by GNSS outage)
                     final var qem = 
                         from(select(TgJourney.class).where()
@@ -153,7 +137,7 @@ public class JourneyProcessor {
                             .setPreliminaryFinishResetByIgnitionOn(false)
                             .setGnssOutageFinish(isJourneyFinishCausedByGnssOutage(message));
                     if (targetJourney.isPersisted() || !isJourneyFinishCausedByGnssOutage(message)) {
-                        journeyCo.save(updateInfo("finish", targetJourney, message, initOdometer, address));
+                        journeyCo.save(updateInfo("finish", targetJourney, message, address));
                     }
                 }
             }
@@ -210,7 +194,7 @@ public class JourneyProcessor {
     private static boolean isLowSpeedJourneyMessageWithIgnitionOn(final TgMessage message) {
         return !message.isTrip() // Journey start messages should not be considered (unlikely combination, but possible)
             && message.getIgnition() // ignition ON is base condition
-            && message.getVectorSpeed() != null && message.getVectorSpeed() >= 0 && message.getVectorSpeed() <= 5 // sometimes speed is greater than zero but still low; we take such messages to increase the chance of always getting ignition ON messages within Ignition OFF timeout
+            && message.getVectorSpeed() != null && message.getVectorSpeed() >= 0 && message.getVectorSpeed() <= 15 // sometimes speed is greater than zero but still low; we take such messages to increase the chance of always getting ignition ON messages within Ignition OFF timeout
             && message.getTripOdometer() != null && message.getTripOdometer() > 0; // trip odometer must have `Continuous` mode enabled and, when Trip, it is always > 0
     }
 
@@ -247,30 +231,28 @@ public class JourneyProcessor {
     }
 
     /**
-     * Creates odometer from {@code initOdometer} from machine-2-module association and {@link TgMessage#getTotalOdometer()}.
+     * Creates odometer from {@link TgMessage#getTotalOdometer()}.
      * 
      * @param message
-     * @param initOdometer
      * @return
      */
-    private static BigDecimal newOdometer(final TgMessage message, final Integer initOdometer) {
-        return valueOf(initOdometer).setScale(2).add(valueOf(message.getTotalOdometer()).setScale(2).divide(valueOf(1000), HALF_UP));
+    private static BigDecimal newOdometer(final TgMessage message) {
+        return valueOf(message.getTotalOdometer()).setScale(2).divide(valueOf(1000), HALF_UP);
     }
 
     /**
-     * Updates props for 'start' or 'finish' ({@code propPrefix} of the Journey.
+     * Updates props for 'start' or 'finish' ({@code propPrefix}) of the Journey.
      * 
      * @param propPrefix
      * @param journey
      * @param message
-     * @param initOdometer
      * @param address
      * @return
      */
-    private static TgJourney updateInfo(final String propPrefix, final TgJourney journey, final TgMessage message, final Integer initOdometer, final String address) {
+    private static TgJourney updateInfo(final String propPrefix, final TgJourney journey, final TgMessage message, final String address) {
         return (TgJourney) journey
             .set(propPrefix + "Date", message.getGpsTime())
-            .set(propPrefix + "Odometer", newOdometer(message, initOdometer))
+            .set(propPrefix + "Odometer", newOdometer(message))
             .set(propPrefix + "Address", address)
             .set(propPrefix + "Latitude", message.getY())
             .set(propPrefix + "Longitude", message.getX());
