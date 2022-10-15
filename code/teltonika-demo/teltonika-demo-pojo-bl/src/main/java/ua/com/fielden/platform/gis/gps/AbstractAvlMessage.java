@@ -1,6 +1,10 @@
 package ua.com.fielden.platform.gis.gps;
 
+import static java.lang.String.format;
+import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
+
 import java.math.BigDecimal;
+import java.time.ZoneId;
 import java.util.Date;
 
 import ua.com.fielden.platform.entity.AbstractEntity;
@@ -73,12 +77,12 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
     @Title(value = "Din1", desc = "Вказує, чи двигун працював у момент генерування повідомлення.")
     private boolean din1;
 
-    @IsProperty(precision = 18, scale = 2)
+    @IsProperty(precision = 18, scale = 2) // TODO voltages to better be represented with scale 3
     @MapTo
     @Title(value = "Vehicle Battery Voltage", desc = "Вольтаж блоку живлення.")
     private BigDecimal powerSupplyVoltage;
 
-    @IsProperty(precision = 18, scale = 2)
+    @IsProperty(precision = 18, scale = 2) // TODO voltages to better be represented with scale 3
     @MapTo
     @Title(value = "Battery Voltage", desc = "Вольтаж акумулятора.")
     private BigDecimal batteryVoltage;
@@ -273,4 +277,12 @@ public abstract class AbstractAvlMessage extends AbstractEntity<DynamicEntityKey
     public BigDecimal getX() {
         return x;
     }
+
+    public String toStringFull() {
+        final var dateFormatter = ISO_DATE_TIME.withZone(ZoneId.systemDefault());
+        return format("%s] lat = %s long = %s alt = %s angle = %s speed = %s sat = %s | ign = %s totalOdo = %s tripOdo = %s trip = %s | extVolt = %s batVolt = %s gnssOn = %s | packDate = %s din1 = %s",
+            dateFormatter.format(getGpsTime().toInstant()), getY(), getX(), getAltitude(), getVectorAngle(), getVectorSpeed(), getVisibleSattelites(), getIgnition(), getTotalOdometer(), getTripOdometer(), isTrip(), getPowerSupplyVoltage(), getBatteryVoltage(), getGpsPower(), dateFormatter.format(getPacketReceived().toInstant()), getDin1()
+        );
+    }
+
 }

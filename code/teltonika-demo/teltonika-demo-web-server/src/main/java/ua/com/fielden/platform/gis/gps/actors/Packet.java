@@ -1,11 +1,16 @@
 package ua.com.fielden.platform.gis.gps.actors;
 
+import static java.lang.String.format;
+import static org.apache.logging.log4j.LogManager.getLogger;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import org.apache.logging.log4j.Logger;
 
 import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
 
@@ -14,6 +19,7 @@ import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
  * 
  */
 public class Packet<T extends AbstractAvlMessage> {
+    private final static Logger LOGGER = getLogger(Packet.class);
     private static BigDecimal TWO = new BigDecimal(2);
     private static BigDecimal TWO_MINUS = new BigDecimal(-2);
 
@@ -38,6 +44,7 @@ public class Packet<T extends AbstractAvlMessage> {
                 gpsTimes.add(message.getGpsTime().getTime());
                 messages.add(message);
             } else {
+                LOGGER.warn(format("Duplicate message [%s] substituted previous one as part of a single packet.\nduplicate: %s\nprevious : %s", message, message.toStringFull(), messages.tailSet(message).first().toStringFull()));
                 final boolean rm = messages.remove(message);
                 final boolean ad = messages.add(message);
             }
@@ -46,10 +53,13 @@ public class Packet<T extends AbstractAvlMessage> {
 
     private boolean isValid(final T msg) {
         if (isZero(msg.getX()) || isZero(msg.getY()) || (isNearZero(msg.getX()) && isNearZero(msg.getY()))) {
+            LOGGER.warn(format("Message [%s] with zero coord [lat = %s, long = %s] was skipped.\nmsg: %s", msg, msg.getY(), msg.getX(), msg.toStringFull()));
             return false;
         } else if ((msg.getGpsTime().getTime() - (new Date()).getTime()) > 600000)/*10 minutes*/{
+            LOGGER.warn(format("Message [%s] in future was skipped.\nmsg: %s", msg, msg.toStringFull()));
             return false;
         } else if (msg.getVectorSpeed().equals(255)) {
+            LOGGER.warn(format("Message [%s] with 255 speed was skipped.\nmsg: %s.", msg, msg.toStringFull()));
             return false;
         }
 
