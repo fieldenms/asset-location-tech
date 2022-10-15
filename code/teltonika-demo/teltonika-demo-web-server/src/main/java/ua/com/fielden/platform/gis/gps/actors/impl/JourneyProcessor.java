@@ -5,6 +5,7 @@ import static java.math.BigDecimal.valueOf;
 import static java.math.RoundingMode.HALF_UP;
 import static java.net.http.HttpClient.newHttpClient;
 import static java.net.http.HttpRequest.newBuilder;
+import static org.apache.logging.log4j.LogManager.getLogger;
 import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.from;
 import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.orderBy;
 import static ua.com.fielden.platform.entity.query.fluent.EntityQueryUtils.select;
@@ -18,6 +19,8 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collection;
 import java.util.Map;
+
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -38,6 +41,7 @@ import ua.com.fielden.platform.sample.domain.TgMessage;
  *
  */
 public class JourneyProcessor {
+    private final static Logger LOGGER = getLogger(JourneyProcessor.class);
     /**
      * Ignition OFF timeout, set on Teltonika trackers, multiplied by 1.5 to increase the chance to cover all friction cases.
      * The most timeouts are 59, 60, 61 seconds. But there was also 84 seconds.
@@ -57,91 +61,108 @@ public class JourneyProcessor {
         messages.stream().filter(
             message -> isJourneyStart(message) || isJourneyFinish(message) || isLowSpeedJourneyMessageWithIgnitionOn(message) || isJourneyFinishCausedByGnssOutage(message)
         ).forEach(message -> {
-            if (isLowSpeedJourneyMessageWithIgnitionOn(message)) { // the message with ignition ON, that is [probably] close to journey finish, detected
+            try {
+                createJourneysFrom(message, machine, journeyCo, machineDriverAssociationCo);
+            } catch (final Exception ex) {
+                LOGGER.error(format("Failed to process Journey from message for vehicle [%s] due to [%s].\nmsg: %s", message.getMachine(), ex, message.toStringFull()), ex);
+            }
+        });
+    }
+
+    /**
+     * Creates (and updates) {@link TgJourney} instances from collection of {@link TgMessage}s.
+     * Please note that every message will be processed completely independently i.e. it is perfectly okay to invoke this method with single message in a collection.
+     * 
+     * @param messages
+     * @param machine
+     * @param journeyCo
+     * @param machineDriverAssociationCo
+     */
+    private static void createJourneysFrom(final TgMessage message, final TgMachine machine, final TgJourneyCo journeyCo, final TgMachineDriverAssociationCo machineDriverAssociationCo) {
+        if (isLowSpeedJourneyMessageWithIgnitionOn(message)) { // the message with ignition ON, that is [probably] close to journey finish, detected
+            final var qem = 
+                from(select(TgJourney.class).where()
+                    .prop("machine").eq().val(machine)
+                    .and().prop("finishDate").isNotNull()
+                    .and().prop("finishDate").lt().val(message.getGpsTime())
+                    .and().addTimeIntervalOf().val(ignitionOffTimeout1_5 / 1000).seconds().to().prop("finishDate").ge().val(message.getGpsTime())
+                    .and().prop("preliminaryFinish").eq().val(true)
+                    .model()
+                )
+                .with(TgJourneyCo.FETCH_PROVIDER.fetchModel())
+                .with(orderBy().prop("finishDate").desc().model()).model(); // take only one closest intersecting interval i.e. sort by 'finishDate' descending and getFirstEntities(..., 1)
+            journeyCo.getFirstEntities(qem, 1).stream().findAny().ifPresent(journey -> { // if there is a journey with preliminary finish within ignition OFF timeout ...
+                journeyCo.save(journey.setPreliminaryFinishResetByIgnitionOn(true)); // ... mark the journey to not close it fully when the next journey finish arrives (even within timeout)
+            });
+        } else {
+            final var driver = machineDriverAssociationCo
+                .getEntityOptional(
+                    from(select(TgMachineDriverAssociation.class).where()
+                        .prop("machine").eq().val(machine)
+                        .and().prop("from").le().val(message.getGpsTime())
+                        .and().begin().prop("to").isNull().or().prop("to").gt().val(message.getGpsTime()).end()
+                        .model()
+                    )
+                    .with(fetchWithKeyAndDesc(TgMachineDriverAssociation.class).with("driver").fetchModel())
+                    .model()
+                ) // only one instance is expected (if history is correct)
+                .map(TgMachineDriverAssociation::getDriver)
+                .orElse(null);
+
+            final var address = reverseGeocode(message.getY().toPlainString() /*lat*/, message.getX().toPlainString() /*long*/);
+
+            if (isJourneyStart(message)) { // journey start detected
                 final var qem = 
                     from(select(TgJourney.class).where()
                         .prop("machine").eq().val(machine)
-                        .and().prop("finishDate").isNotNull()
-                        .and().prop("finishDate").lt().val(message.getGpsTime())
-                        .and().addTimeIntervalOf().val(ignitionOffTimeout1_5 / 1000).seconds().to().prop("finishDate").ge().val(message.getGpsTime())
-                        .and().prop("preliminaryFinish").eq().val(true)
+                        .and().prop("earliestDate").gt().val(message.getGpsTime())
                         .model()
                     )
                     .with(TgJourneyCo.FETCH_PROVIDER.fetchModel())
-                    .with(orderBy().prop("finishDate").desc().model()).model(); // take only one closest intersecting interval i.e. sort by 'finishDate' descending and getFirstEntities(..., 1)
-                journeyCo.getFirstEntities(qem, 1).stream().findAny().ifPresent(journey -> { // if there is a journey with preliminary finish within ignition OFF timeout ...
-                    journeyCo.save(journey.setPreliminaryFinishResetByIgnitionOn(true)); // ... mark the journey to not close it fully when the next journey finish arrives (even within timeout)
-                });
-            } else {
-                final var driver = machineDriverAssociationCo
-                    .getEntityOptional(
-                        from(select(TgMachineDriverAssociation.class).where()
-                            .prop("machine").eq().val(machine)
-                            .and().prop("from").le().val(message.getGpsTime())
-                            .and().begin().prop("to").isNull().or().prop("to").gt().val(message.getGpsTime()).end()
-                            .model()
-                        )
-                        .with(fetchWithKeyAndDesc(TgMachineDriverAssociation.class).with("driver").fetchModel())
+                    .with(orderBy().prop("earliestDate").asc().model()).model(); // take only one closest intersecting interval i.e. sort by 'earliestDate' ascending and getFirstEntities(..., 1)
+                final var journeyOpt = journeyCo.getFirstEntities(qem, 1).stream().findAny();
+                final var targetJourney =
+                    // if there are no earliest period or ...
+                    !journeyOpt.isPresent()
+                    // ... if earliest period is closed ...
+                    || journeyOpt.get().getStartDate() != null
+                    // ... then create new open period with start;
+                    ? createJourney(driver, machine, journeyCo)
+                    // otherwise update start for the earliest period
+                    : journeyOpt.get();
+                journeyCo.save(updateInfo("start", targetJourney, message, address));
+            } else { // journey finish detected (maybe caused by GNSS outage)
+                final var qem = 
+                    from(select(TgJourney.class).where()
+                        .prop("machine").eq().val(machine)
+                        .and().prop("latestDate").lt().val(message.getGpsTime())
                         .model()
-                    ) // only one instance is expected (if history is correct)
-                    .map(TgMachineDriverAssociation::getDriver)
-                    .orElse(null);
-
-                final var address = reverseGeocode(message.getY().toPlainString() /*lat*/, message.getX().toPlainString() /*long*/);
-
-                if (isJourneyStart(message)) { // journey start detected
-                    final var qem = 
-                        from(select(TgJourney.class).where()
-                            .prop("machine").eq().val(machine)
-                            .and().prop("earliestDate").gt().val(message.getGpsTime())
-                            .model()
-                        )
-                        .with(TgJourneyCo.FETCH_PROVIDER.fetchModel())
-                        .with(orderBy().prop("earliestDate").asc().model()).model(); // take only one closest intersecting interval i.e. sort by 'earliestDate' ascending and getFirstEntities(..., 1)
-                    final var journeyOpt = journeyCo.getFirstEntities(qem, 1).stream().findAny();
-                    final var targetJourney =
-                        // if there are no earliest period or ...
-                        !journeyOpt.isPresent()
-                        // ... if earliest period is closed ...
-                        || journeyOpt.get().getStartDate() != null
-                        // ... then create new open period with start;
-                        ? createJourney(driver, machine, journeyCo)
-                        // otherwise update start for the earliest period
-                        : journeyOpt.get();
-                    journeyCo.save(updateInfo("start", targetJourney, message, address));
-                } else { // journey finish detected (maybe caused by GNSS outage)
-                    final var qem = 
-                        from(select(TgJourney.class).where()
-                            .prop("machine").eq().val(machine)
-                            .and().prop("latestDate").lt().val(message.getGpsTime())
-                            .model()
-                        )
-                        .with(TgJourneyCo.FETCH_PROVIDER.fetchModel())
-                        .with(orderBy().prop("latestDate").desc().model()).model(); // take only one closest intersecting interval i.e. sort by 'latestDate' descending and getFirstEntities(..., 1)
-                    final var journeyOpt = journeyCo.getFirstEntities(qem, 1).stream().findAny();
-                    
-                    final var targetJourney =
-                        // if there are no latest period or ...
-                        !journeyOpt.isPresent()
-                        // ... if latest period is closed and delta > 90 seconds ...
-                        || journeyOpt.get().getFinishDate() != null && !journeyOpt.get().isPreliminaryFinish() && message.getGpsTime().getTime() - journeyOpt.get().getFinishDate().getTime() > ignitionOffTimeout1_5
-                        // ... then create new open period with preliminary finish;
-                        ? createJourney(driver, machine, journeyCo).setPreliminaryFinish(true)
-                        // otherwise update finish for the latest period;
-                        : journeyOpt.get()
-                            .setPreliminaryFinish(!isJourneyFinishCausedByGnssOutage(message) && (
-                                journeyOpt.get().getFinishDate() == null // if it was open then make finish preliminary;
-                                || message.getGpsTime().getTime() - journeyOpt.get().getFinishDate().getTime() > ignitionOffTimeout1_5 // also make it preliminary if outside ignition OFF timeout;
-                                || journeyOpt.get().isPreliminaryFinishResetByIgnitionOn() // also make it preliminary if inside ignition OFF timeout but had ignition ON messages in between
-                            ))
-                            .setPreliminaryFinishResetByIgnitionOn(false)
-                            .setGnssOutageFinish(isJourneyFinishCausedByGnssOutage(message));
-                    if (targetJourney.isPersisted() || !isJourneyFinishCausedByGnssOutage(message)) {
-                        journeyCo.save(updateInfo("finish", targetJourney, message, address));
-                    }
+                    )
+                    .with(TgJourneyCo.FETCH_PROVIDER.fetchModel())
+                    .with(orderBy().prop("latestDate").desc().model()).model(); // take only one closest intersecting interval i.e. sort by 'latestDate' descending and getFirstEntities(..., 1)
+                final var journeyOpt = journeyCo.getFirstEntities(qem, 1).stream().findAny();
+                
+                final var targetJourney =
+                    // if there are no latest period or ...
+                    !journeyOpt.isPresent()
+                    // ... if latest period is closed and delta > 90 seconds ...
+                    || journeyOpt.get().getFinishDate() != null && !journeyOpt.get().isPreliminaryFinish() && message.getGpsTime().getTime() - journeyOpt.get().getFinishDate().getTime() > ignitionOffTimeout1_5
+                    // ... then create new open period with preliminary finish;
+                    ? createJourney(driver, machine, journeyCo).setPreliminaryFinish(true)
+                    // otherwise update finish for the latest period;
+                    : journeyOpt.get()
+                        .setPreliminaryFinish(!isJourneyFinishCausedByGnssOutage(message) && (
+                            journeyOpt.get().getFinishDate() == null // if it was open then make finish preliminary;
+                            || message.getGpsTime().getTime() - journeyOpt.get().getFinishDate().getTime() > ignitionOffTimeout1_5 // also make it preliminary if outside ignition OFF timeout;
+                            || journeyOpt.get().isPreliminaryFinishResetByIgnitionOn() // also make it preliminary if inside ignition OFF timeout but had ignition ON messages in between
+                        ))
+                        .setPreliminaryFinishResetByIgnitionOn(false)
+                        .setGnssOutageFinish(isJourneyFinishCausedByGnssOutage(message));
+                if (targetJourney.isPersisted() || !isJourneyFinishCausedByGnssOutage(message)) {
+                    journeyCo.save(updateInfo("finish", targetJourney, message, address));
                 }
             }
-        });
+        }
     }
 
     /**
@@ -272,7 +293,7 @@ public class JourneyProcessor {
                 final ObjectMapper mapper = new ObjectMapper();
                 final Map map = mapper.readValue(response.body(), Map.class);
                 if (map.get("display_name") != null && map.get("display_name") instanceof final String s) {
-                    System.out.println((String) map.get("display_name"));
+                    LOGGER.info((String) map.get("display_name"));
                     if (s.length() > 255) {
                         return s.substring(0, 255); // reduce to 255 length if exceeded
                     }
