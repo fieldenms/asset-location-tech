@@ -1,5 +1,9 @@
 package ua.com.fielden.platform.gis.gps;
 
+import static java.math.BigDecimal.valueOf;
+
+import java.math.BigDecimal;
+
 public class AvlGpsElement {
 
     public static final int BASE_ELEMENT_LENGTH = 4 + 4 + 2 + 2 + 1 + 2;
@@ -22,12 +26,12 @@ public class AvlGpsElement {
         this.speed = speed;
     }
 
-    public double getLongitude() {
-        return (double) longitude / PRECISION;
+    public BigDecimal getLongitude() {
+        return valueOf(longitude).setScale(10).divide(valueOf(PRECISION));
     }
 
-    public double getLatitude() {
-        return (double) latitude / PRECISION;
+    public BigDecimal getLatitude() {
+        return valueOf(latitude).setScale(10).divide(valueOf(PRECISION));
     }
 
     public short getAltitude() {

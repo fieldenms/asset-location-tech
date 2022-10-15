@@ -35,10 +35,10 @@ public class GpsLoggerHandler implements IMessageHandler {
 
         final StringBuilder nmea = new StringBuilder("$GPGGA,") //
                 .append(new SimpleDateFormat("HHmmss").format(date) + ",") //
-                .append(Math.abs(gps.getLatitude()) + ",") //
-                .append((gps.getLatitude() < 0) ? "S," : "N,") //
-                .append(Math.abs(gps.getLongitude()) + ",") //
-                .append((gps.getLongitude() < 0) ? "W," : "E,") //
+                .append(Math.abs(gps.getLatitude().doubleValue()) + ",") //
+                .append((gps.getLatitude().doubleValue() < 0) ? "S," : "N,") //
+                .append(Math.abs(gps.getLongitude().doubleValue()) + ",") //
+                .append((gps.getLongitude().doubleValue() < 0) ? "W," : "E,") //
                 .append("1,") //
                 .append(gps.getSatellites() + ",") //
                 .append("0.0,") //
@@ -55,9 +55,9 @@ public class GpsLoggerHandler implements IMessageHandler {
     private String createRmc(final long timestamp, final AvlGpsElement gps) {
         final Date date = new Date(timestamp);
 
-        final StringBuilder nmea = new StringBuilder("$GPRMC,").append(new SimpleDateFormat("HHmmss").format(date) + ",").append("A,").append(Math.abs(gps.getLatitude())
-                + ",").append((gps.getLatitude() < 0) ? "S,"
-                        : "N,").append(Math.abs(gps.getLongitude()) + ",").append((gps.getLongitude() < 0) ? "W," : "E,").append(gps.getSpeed() + ",").append(gps.getAngle()
+        final StringBuilder nmea = new StringBuilder("$GPRMC,").append(new SimpleDateFormat("HHmmss").format(date) + ",").append("A,").append(Math.abs(gps.getLatitude().doubleValue())
+                + ",").append((gps.getLatitude().doubleValue() < 0) ? "S,"
+                        : "N,").append(Math.abs(gps.getLongitude().doubleValue()) + ",").append((gps.getLongitude().doubleValue() < 0) ? "W," : "E,").append(gps.getSpeed() + ",").append(gps.getAngle()
                                 + ".0,").append(new SimpleDateFormat("ddMMyy").format(date)
                                         + ",").append(",,A*6F");
 

@@ -1,5 +1,7 @@
 package ua.com.fielden.platform.gis.gps.actors;
 
+import static java.math.BigDecimal.valueOf;
+import static java.math.RoundingMode.HALF_UP;
 import static org.apache.logging.log4j.LogManager.getLogger;
 
 import java.math.BigDecimal;
@@ -30,8 +32,8 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
         final Date gpsTime = new Date(avl.getGpsTimestamp());
 
         msg.setAltitude(Integer.valueOf(gps.getAltitude()));
-        msg.setX(BigDecimal.valueOf(gps.getLongitude()));
-        msg.setY(BigDecimal.valueOf(gps.getLatitude()));
+        msg.setX(gps.getLongitude());
+        msg.setY(gps.getLatitude());
         msg.setVectorSpeed(Integer.valueOf(gps.getSpeed()));
         msg.setVectorAngle(Integer.valueOf(gps.getAngle()));
         msg.setVisibleSattelites(Integer.valueOf(gps.getSatellites()));
@@ -93,7 +95,7 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
     private static BigDecimal locatePowerSupplyVot(final AvlIoElement io) {
         for (int index = 0; index < io.shortIo.length; index++) {
             if (io.shortIo[index].ioId == AvlIoCodes.POWER_SUPPLY_VOLT.id) {
-                return new BigDecimal((double) io.shortIo[index].ioValue / 1000);
+                return voltageFrom(io.shortIo[index].ioValue);
             }
         }
         return null;
@@ -102,10 +104,14 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
     private static BigDecimal locateBatteryVot(final AvlIoElement io) {
         for (int index = 0; index < io.shortIo.length; index++) {
             if (io.shortIo[index].ioId == AvlIoCodes.BATTERY_VOLT.id) {
-                return new BigDecimal((double) io.shortIo[index].ioValue / 1000);
+                return voltageFrom(io.shortIo[index].ioValue);
             }
         }
         return null;
+    }
+
+    private static BigDecimal voltageFrom(final short value) {
+        return valueOf(value).setScale(2).divide(valueOf(1000), HALF_UP); // TODO voltages to better be represented with scale 3
     }
 
     private static boolean locateGpsPower(final AvlIoElement io) {
