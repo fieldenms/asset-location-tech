@@ -12,9 +12,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.Logger;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.group.ChannelGroup;
-import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.logging.InternalLoggerFactory;
 import org.jboss.netty.logging.Slf4JLoggerFactory;
 import org.joda.time.DateTime;
@@ -29,6 +26,9 @@ import akka.actor.UntypedActor;
 import akka.actor.UntypedActorFactory;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
+import fielden.teltonika.AvlData;
+import fielden.teltonika.IAvlTrackerHandler;
+import fielden.teltonika.server.AvlServer;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -37,10 +37,6 @@ import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachineModuleTemporalAssociation;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
 import ua.com.fielden.platform.gis.gps.AbstractAvlModule;
-import ua.com.fielden.platform.gis.gps.AvlData;
-import ua.com.fielden.platform.gis.gps.IModuleLookup;
-import ua.com.fielden.platform.gis.gps.factory.DefaultGpsHandlerFactory;
-import ua.com.fielden.platform.gis.gps.server.ServerTeltonika;
 import ua.com.fielden.platform.utils.Pair;
 
 /**
@@ -49,7 +45,7 @@ import ua.com.fielden.platform.utils.Pair;
  * @author TG Team
  * 
  */
-public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule, ASSOCIATION extends AbstractAvlMachineModuleTemporalAssociation<MESSAGE, MACHINE, MODULE>, MACHINE_ACTOR extends AbstractAvlMachineActor<MESSAGE, MACHINE>, MODULE_ACTOR extends AbstractAvlModuleActor<MESSAGE, MACHINE, MODULE, ASSOCIATION>> implements IModuleLookup {
+public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE extends AbstractAvlMachine<MESSAGE>, MODULE extends AbstractAvlModule, ASSOCIATION extends AbstractAvlMachineModuleTemporalAssociation<MESSAGE, MACHINE, MODULE>, MACHINE_ACTOR extends AbstractAvlMachineActor<MESSAGE, MACHINE>, MODULE_ACTOR extends AbstractAvlModuleActor<MESSAGE, MACHINE, MODULE, ASSOCIATION>> implements IAvlTrackerHandler {
 
     protected static final Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(AbstractActors.class);
 
@@ -231,7 +227,8 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      * @param imei
      * @param data
      */
-    public void dataReceived(final String imei, final AvlData[] data) {
+    @Override
+    public void handleData(final String imei, final AvlData[] data) {
         final ActorRef actor = getModuleActor(imei);
         if (actor != null) { // the module is registered
             actor.tell(data, null);
@@ -294,7 +291,7 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
      * Performs some custom action after the actors has been started.
      */
     protected void machineActorsStartedPostAction() {
-        startNettyGpsServer();
+        startNettyAvlServer();
     }
 
     /**
@@ -308,33 +305,31 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
     }
 
     /**
-     * Starts Netty Gps server.
+     * Starts Netty AVL server.
      */
-    protected void startNettyGpsServer() {
-        //////// start netty-based GPS server
-        //InternalLoggerFactory.setDefaultFactory(new Log4JLoggerFactory());
+    protected void startNettyAvlServer() {
+        //////// start netty-based AVL server
+        // TODO Log4JLoggerFactory is not working here; InternalLoggerFactory.setDefaultFactory(new Log4JLoggerFactory());
         InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
-        final ChannelGroup allChannels = new DefaultChannelGroup("gps-server");
-        final ConcurrentHashMap<String, Channel> existingConnections = new ConcurrentHashMap<>();
-        final ServerTeltonika serverTeltonika = new ServerTeltonika(gpsHost, gpsPort, existingConnections, allChannels, new DefaultGpsHandlerFactory<MESSAGE, MACHINE, MODULE, ASSOCIATION, MACHINE_ACTOR, MODULE_ACTOR>(existingConnections, allChannels, this)) {
+        final AvlServer avlServer = new AvlServer(gpsHost, gpsPort, this) {
             @Override
             public void run() {
                 super.run();
 
-                nettyServerStartedPostAction();
+                nettyAvlServerStartedPostAction();
             }
         };
-        new Thread(serverTeltonika).start();
+        new Thread(avlServer).start();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                serverTeltonika.shutdown();
+                avlServer.shutdown();
             }
         });
     }
 
-    protected void nettyServerStartedPostAction() {
+    protected void nettyAvlServerStartedPostAction() {
     }
 
     protected ActorSystem getSystem() {
@@ -346,7 +341,7 @@ public abstract class AbstractActors<MESSAGE extends AbstractAvlMessage, MACHINE
     }
 
     @Override
-    public boolean isPresent(final String imei) {
+    public boolean authorise(final String imei) {
         return ofNullable(isModuleRegistered(imei) ? moduleActors.get(imei).getKey() : null).isPresent();
     }
 

@@ -65,8 +65,8 @@ public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMac
     }
 
     @Override
-    protected void nettyServerStartedPostAction() {
-        super.nettyServerStartedPostAction();
+    protected void nettyAvlServerStartedPostAction() {
+        super.nettyAvlServerStartedPostAction();
 
 //        try {
 //            final String event = "porter-server-started";

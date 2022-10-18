@@ -18,12 +18,12 @@ import org.apache.logging.log4j.Logger;
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
+import fielden.teltonika.AvlData;
 import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachineModuleTemporalAssociation;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
 import ua.com.fielden.platform.gis.gps.AbstractAvlModule;
-import ua.com.fielden.platform.gis.gps.AvlData;
 import ua.com.fielden.platform.persistence.HibernateUtil;
 
 /**

@@ -1,4 +1,4 @@
-package ua.com.fielden.platform.gis.gps.server;
+package fielden.teltonika.server;
 
 import static java.lang.String.format;
 import static org.apache.logging.log4j.LogManager.getLogger;
@@ -18,12 +18,11 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.group.ChannelGroup;
 
-import ua.com.fielden.platform.gis.gps.AvlData;
-import ua.com.fielden.platform.gis.gps.IMessageHandler;
-import ua.com.fielden.platform.gis.gps.IModuleLookup;
+import fielden.teltonika.AvlData;
+import fielden.teltonika.IAvlTrackerHandler;
 
-public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
-    protected final static Logger LOGGER = getLogger(ServerTeltonikaHandler.class);
+public class AvlServerHandler extends SimpleChannelUpstreamHandler {
+    protected final static Logger LOGGER = getLogger(AvlServerHandler.class);
 
     private static final byte LOGIN_DENY = 0x0;
     private static final byte LOGIN_ALLOW = 0x1;
@@ -33,14 +32,12 @@ public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
 
     private String imei;
     private final ChannelBuffer ack = ChannelBuffers.buffer(4);
-    private final IModuleLookup moduleLookup;
-    private final IMessageHandler messageHandler;
+    private final IAvlTrackerHandler avlTrackerHandler;
 
-    public ServerTeltonikaHandler(final ConcurrentHashMap<String, Channel> existingConnections, final ChannelGroup allChannels, final IModuleLookup moduleLookup, final IMessageHandler messageHandler) {
+    public AvlServerHandler(final ConcurrentHashMap<String, Channel> existingConnections, final ChannelGroup allChannels, final IAvlTrackerHandler avlTrackerHandler) {
         this.existingConnections = existingConnections;
         this.allChannels = allChannels;
-        this.moduleLookup = moduleLookup;
-        this.messageHandler = messageHandler;
+        this.avlTrackerHandler = avlTrackerHandler;
     }
 
     @Override
@@ -109,7 +106,7 @@ public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
         final Channel channel = ctx.getChannel();
         final ChannelBuffer msg = ChannelBuffers.buffer(1);
         try {
-            if (moduleLookup.isPresent(imei)) {
+            if (avlTrackerHandler.authorise(imei)) {
                 LOGGER.info("Authorised IMEI [" + imei + "].");
                 msg.writeByte(LOGIN_ALLOW);
                 setImei(imei);
@@ -143,9 +140,9 @@ public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
     private void handleData(final ChannelHandlerContext ctx, final String imei, final AvlData[] data) {
         final Channel channel = ctx.getChannel();
         final int count = data.length;
-        LOGGER.info("Received GPS data from IMEI [" + imei + "]. AVL data count = [" + count + "].");
+        LOGGER.info("Received AVL data from IMEI [" + imei + "]. AVL data count = [" + count + "].");
 
-        messageHandler.handle(imei, data);
+        avlTrackerHandler.handleData(imei, data);
 
         ack.resetWriterIndex();
         ack.writeInt(count);

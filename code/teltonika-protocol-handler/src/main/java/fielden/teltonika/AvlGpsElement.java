@@ -1,4 +1,4 @@
-package ua.com.fielden.platform.gis.gps;
+package fielden.teltonika;
 
 import static java.math.BigDecimal.valueOf;
 
@@ -26,12 +26,12 @@ public class AvlGpsElement {
         this.speed = speed;
     }
 
-    public BigDecimal getLongitude() {
-        return valueOf(longitude).setScale(10).divide(valueOf(PRECISION));
+    public BigDecimal getLongitude(final int scale) {
+        return valueOf(longitude).setScale(scale).divide(valueOf(PRECISION));
     }
 
-    public BigDecimal getLatitude() {
-        return valueOf(latitude).setScale(10).divide(valueOf(PRECISION));
+    public BigDecimal getLatitude(final int scale) {
+        return valueOf(latitude).setScale(scale).divide(valueOf(PRECISION));
     }
 
     public short getAltitude() {
