@@ -1,5 +1,7 @@
 package ua.com.fielden.platform.sample.domain;
 
+import static java.lang.String.format;
+
 import ua.com.fielden.platform.entity.annotation.CompanionObject;
 import ua.com.fielden.platform.entity.annotation.CompositeKeyMember;
 import ua.com.fielden.platform.entity.annotation.IsProperty;
@@ -34,4 +36,10 @@ public class TgMessage extends AbstractAvlMessage {
     public TgMachine getMachine() {
         return machine;
     }
+
+    @Override
+    public String toStringFull() {
+        return format("[%s %s", getMachine(), super.toStringFull());
+    }
+
 }

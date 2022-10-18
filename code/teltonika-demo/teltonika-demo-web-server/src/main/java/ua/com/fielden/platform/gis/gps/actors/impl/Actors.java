@@ -6,9 +6,13 @@ import java.util.Map;
 import com.google.inject.Injector;
 
 import akka.actor.ActorRef;
+import ua.com.fielden.platform.dao.session.TransactionalExecution;
 import ua.com.fielden.platform.entity.factory.EntityFactory;
+import ua.com.fielden.platform.entity.query.EntityBatchInsertOperation;
+import ua.com.fielden.platform.entity.query.metadata.DomainMetadata;
 import ua.com.fielden.platform.gis.gps.actors.AbstractActors;
 import ua.com.fielden.platform.persistence.HibernateUtil;
+import ua.com.fielden.platform.sample.domain.ITgMessage;
 import ua.com.fielden.platform.sample.domain.TgJourneyCo;
 import ua.com.fielden.platform.sample.domain.TgMachine;
 import ua.com.fielden.platform.sample.domain.TgMachineDriverAssociationCo;
@@ -38,13 +42,15 @@ public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMac
     @Override
     protected MachineActor createMachineActor(final Injector injector, final TgMachine machine, final TgMessage lastMessage, final ActorRef machinesCounterRef) {
         return new MachineActor(
-                injector.getInstance(EntityFactory.class),
-                machine,
-                lastMessage,
-                injector.getInstance(HibernateUtil.class),
-                injector.getInstance(TgJourneyCo.class),
-                injector.getInstance(TgMachineDriverAssociationCo.class),
-                machinesCounterRef);
+            injector.getInstance(EntityFactory.class),
+            machine,
+            lastMessage,
+            injector.getInstance(TgJourneyCo.class),
+            injector.getInstance(TgMachineDriverAssociationCo.class),
+            machinesCounterRef,
+            new EntityBatchInsertOperation(injector.getInstance(DomainMetadata.class), () -> injector.getInstance(TransactionalExecution.class)),
+            injector.getInstance(ITgMessage.class)
+        );
     }
 
     @Override
@@ -59,8 +65,8 @@ public class Actors extends AbstractActors<TgMessage, TgMachine, TgModule, TgMac
     }
 
     @Override
-    protected void nettyServerStartedPostAction() {
-        super.nettyServerStartedPostAction();
+    protected void nettyAvlServerStartedPostAction() {
+        super.nettyAvlServerStartedPostAction();
 
 //        try {
 //            final String event = "porter-server-started";

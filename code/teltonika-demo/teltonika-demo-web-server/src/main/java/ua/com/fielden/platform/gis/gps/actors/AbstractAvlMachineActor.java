@@ -14,7 +14,6 @@ import ua.com.fielden.platform.entity.factory.EntityFactory;
 import ua.com.fielden.platform.gis.MapUtils;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMachine;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
-import ua.com.fielden.platform.persistence.HibernateUtil;
 
 /**
  * This actor is responsible for messages processing for concrete machine.
@@ -29,15 +28,13 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
 
     private MACHINE machine;
     private MESSAGE latestGpsMessage;
-    private final HibernateUtil hibUtil;
     private ActorRef machinesCounterRef;
 
-    public AbstractAvlMachineActor(final EntityFactory factory, final MACHINE machine, final MESSAGE latestGpsMessage, final HibernateUtil hibUtil, final ActorRef machinesCounterRef) {
+    public AbstractAvlMachineActor(final EntityFactory factory, final MACHINE machine, final MESSAGE latestGpsMessage, final ActorRef machinesCounterRef) {
         this.machinesCounterRef = machinesCounterRef;
         this.messagesComparator = new MessagesComparator<MESSAGE>();
         this.machine = machine;
         this.latestGpsMessage = latestGpsMessage;
-        this.hibUtil = hibUtil;
     }
 
     @Override
@@ -152,10 +149,6 @@ public abstract class AbstractAvlMachineActor<MESSAGE extends AbstractAvlMessage
 
     protected void setMachine(final MACHINE machine) {
         this.machine = machine;
-    }
-
-    protected HibernateUtil getHibUtil() {
-        return hibUtil;
     }
 
     public MessagesComparator<MESSAGE> getMessagesComparator() {

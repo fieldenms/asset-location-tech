@@ -30,8 +30,8 @@ public class TgMessageProducer extends DefaultEntityProducerWithContext<TgMessag
         message.setGpsTime(DateTimeFormat.forPattern("dd/MM/yyyy HH:mm:ss.SSS").parseDateTime("04/03/2014 16:45:52.000").toDate());
         message.setVectorAngle(78);
         message.setVectorSpeed(25);
-        message.setX(BigDecimal.valueOf(24.005127));
-        message.setY(BigDecimal.valueOf(49.852152));
+        message.setX(new BigDecimal("24.0051270000")); // use scale of 10
+        message.setY(new BigDecimal("49.8521520000"));
         return message;
     }
 }

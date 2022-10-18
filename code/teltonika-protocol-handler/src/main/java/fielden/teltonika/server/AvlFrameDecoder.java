@@ -1,4 +1,4 @@
-package ua.com.fielden.platform.gis.gps.server;
+package fielden.teltonika.server;
 
 import static org.apache.logging.log4j.LogManager.getLogger;
 
@@ -8,9 +8,9 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 
-import ua.com.fielden.platform.gis.gps.AvlData;
-import ua.com.fielden.platform.gis.gps.AvlGpsElement;
-import ua.com.fielden.platform.gis.gps.AvlIoElement;
+import fielden.teltonika.AvlData;
+import fielden.teltonika.AvlGpsElement;
+import fielden.teltonika.AvlIoElement;
 
 public class AvlFrameDecoder extends FrameDecoder {
 

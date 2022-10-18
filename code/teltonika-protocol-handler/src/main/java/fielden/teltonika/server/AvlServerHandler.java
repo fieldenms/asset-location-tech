@@ -1,4 +1,4 @@
-package ua.com.fielden.platform.gis.gps.server;
+package fielden.teltonika.server;
 
 import static java.lang.String.format;
 import static org.apache.logging.log4j.LogManager.getLogger;
@@ -9,6 +9,8 @@ import org.apache.logging.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
@@ -16,12 +18,11 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.group.ChannelGroup;
 
-import ua.com.fielden.platform.gis.gps.AvlData;
-import ua.com.fielden.platform.gis.gps.IMessageHandler;
-import ua.com.fielden.platform.gis.gps.IModuleLookup;
+import fielden.teltonika.AvlData;
+import fielden.teltonika.IAvlTrackerHandler;
 
-public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
-    protected final static Logger LOGGER = getLogger(ServerTeltonikaHandler.class);
+public class AvlServerHandler extends SimpleChannelUpstreamHandler {
+    protected final static Logger LOGGER = getLogger(AvlServerHandler.class);
 
     private static final byte LOGIN_DENY = 0x0;
     private static final byte LOGIN_ALLOW = 0x1;
@@ -31,14 +32,12 @@ public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
 
     private String imei;
     private final ChannelBuffer ack = ChannelBuffers.buffer(4);
-    private final IModuleLookup moduleLookup;
-    private final IMessageHandler messageHandler;
+    private final IAvlTrackerHandler avlTrackerHandler;
 
-    public ServerTeltonikaHandler(final ConcurrentHashMap<String, Channel> existingConnections, final ChannelGroup allChannels, final IModuleLookup moduleLookup, final IMessageHandler messageHandler) {
+    public AvlServerHandler(final ConcurrentHashMap<String, Channel> existingConnections, final ChannelGroup allChannels, final IAvlTrackerHandler avlTrackerHandler) {
         this.existingConnections = existingConnections;
         this.allChannels = allChannels;
-        this.moduleLookup = moduleLookup;
-        this.messageHandler = messageHandler;
+        this.avlTrackerHandler = avlTrackerHandler;
     }
 
     @Override
@@ -103,12 +102,12 @@ public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
     }
 
     private void handleLogin(final ChannelHandlerContext ctx, final String imei) {
-        LOGGER.debug("Logging in client [" + imei + "].");
+        LOGGER.info("Logging in client [" + imei + "].");
         final Channel channel = ctx.getChannel();
         final ChannelBuffer msg = ChannelBuffers.buffer(1);
         try {
-            if (moduleLookup.isPresent(imei)) {
-                LOGGER.debug("Authorised IMEI [" + imei + "].");
+            if (avlTrackerHandler.authorise(imei)) {
+                LOGGER.info("Authorised IMEI [" + imei + "].");
                 msg.writeByte(LOGIN_ALLOW);
                 setImei(imei);
             } else {
@@ -117,25 +116,50 @@ public class ServerTeltonikaHandler extends SimpleChannelUpstreamHandler {
                 //channel.close(); // FIXME relies on multiplexer to close the channel
             }
         } finally {
-            channel.write(msg);
+            channel.write(msg).addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(final ChannelFuture future) {
+                    if (future.isDone()) {
+                        if (future.getCause() != null) {
+                            LOGGER.warn("Login response failed [" + imei + "].", future.getCause());
+                        } else if (future.isCancelled()) {
+                            LOGGER.warn("Login response canceled [" + imei + "].");
+                        } else {
+                            LOGGER.info("Login response succeeded [" + imei + "].");
+                        }
+                    }
+                }
+            });
         }
     }
 
     private void handleLogoff(final ChannelHandlerContext ctx, final Integer reason) {
-        LOGGER.debug("Logging off client [" + getImei() + "].");
+        LOGGER.info("Logging off client [" + getImei() + "].");
     }
 
     private void handleData(final ChannelHandlerContext ctx, final String imei, final AvlData[] data) {
         final Channel channel = ctx.getChannel();
-        LOGGER.debug("Received GPS data from IMEI [" + getImei() + "]");
         final int count = data.length;
-        LOGGER.debug("AVL data count = [" + count + "]");
+        LOGGER.info("Received AVL data from IMEI [" + imei + "]. AVL data count = [" + count + "].");
 
-        messageHandler.handle(imei, data);
+        avlTrackerHandler.handleData(imei, data);
 
         ack.resetWriterIndex();
         ack.writeInt(count);
-        channel.write(ack);
+        channel.write(ack).addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(final ChannelFuture future) {
+                if (future.isDone()) {
+                    if (future.getCause() != null) {
+                        LOGGER.warn("Acknowledgement failed [" + imei + "]. AVL data count = [" + count + "].", future.getCause());
+                    } else if (future.isCancelled()) {
+                        LOGGER.warn("Acknowledgement canceled [" + imei + "]. AVL data count = [" + count + "].");
+                    } else {
+                        LOGGER.info("Acknowledgement succeeded [" + imei + "]. AVL data count = [" + count + "].");
+                    }
+                }
+            }
+        });
     }
 
     public String getImei() {

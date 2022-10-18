@@ -1,4 +1,4 @@
-package ua.com.fielden.platform.gis.gps;
+package fielden.teltonika;
 
 public class AvlIoElement {
 

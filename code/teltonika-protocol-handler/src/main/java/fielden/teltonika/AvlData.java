@@ -1,7 +1,7 @@
-package ua.com.fielden.platform.gis.gps;
+package fielden.teltonika;
 
 /**
- * Raw GPS message data from GPS modules.
+ * Raw AVL message data from AVL trackers.
  * 
  * @author TG Team
  * 
@@ -11,13 +11,13 @@ public class AvlData {
     public static final int BASE_ELEMENT_LENGTH = 8 + 1 + AvlGpsElement.BASE_ELEMENT_LENGTH + AvlIoElement.BASE_ELEMENT_LENGTH;
 
     private final int capacity;
-    private final long gpsTimestamp;
+    private final long timestamp;
     private final byte priority;
     private final AvlGpsElement gps;
     private final AvlIoElement io;
 
     public AvlData(final long timestamp, final byte priority, final AvlGpsElement gps, final AvlIoElement io, final int capacity) {
-        this.gpsTimestamp = timestamp;
+        this.timestamp = timestamp;
         this.priority = priority;
         this.gps = gps;
         this.io = io;
@@ -28,8 +28,8 @@ public class AvlData {
                 io.longIo.length * AvlIoElement.LongIoElement.BASE_ELEMENT_LENGTH;
     }
 
-    public long getGpsTimestamp() {
-        return gpsTimestamp;
+    public long getTimestamp() {
+        return timestamp;
     }
 
     public byte getPriority() {

@@ -2,7 +2,7 @@
 <Configuration status="WARN" monitorInterval="10">
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{yyyy-MMM-dd HH:mm:ss} %X{user} %X{PID} %X{MEM} %5p %c{1} %C{1}:%-3L &quot;%m&quot;%n"/>
+            <PatternLayout pattern="%d{yyyy-MMM-dd HH:mm:ss.SSS} %X{user} %X{PID} %X{MEM} %5p %c{1} %C{1}:%-3L &quot;%m&quot;%n"/>
         </Console>
     </Appenders>
 

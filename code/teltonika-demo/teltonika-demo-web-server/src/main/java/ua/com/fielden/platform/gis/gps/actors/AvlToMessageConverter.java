@@ -1,5 +1,7 @@
 package ua.com.fielden.platform.gis.gps.actors;
 
+import static java.math.BigDecimal.valueOf;
+import static java.math.RoundingMode.HALF_UP;
 import static org.apache.logging.log4j.LogManager.getLogger;
 
 import java.math.BigDecimal;
@@ -7,11 +9,11 @@ import java.util.Date;
 
 import org.apache.logging.log4j.Logger;
 
+import fielden.teltonika.AvlData;
+import fielden.teltonika.AvlGpsElement;
+import fielden.teltonika.AvlIoCodes;
+import fielden.teltonika.AvlIoElement;
 import ua.com.fielden.platform.gis.gps.AbstractAvlMessage;
-import ua.com.fielden.platform.gis.gps.AvlData;
-import ua.com.fielden.platform.gis.gps.AvlGpsElement;
-import ua.com.fielden.platform.gis.gps.AvlIoCodes;
-import ua.com.fielden.platform.gis.gps.AvlIoElement;
 
 /**
  * A convenient routine for populating data from {@link AvlData} to GPS message.
@@ -27,11 +29,11 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
     /** A convenient routine for populating data from {@link AvlData} to GPS message. */
     public T populateData(final T msg, final AvlData avl, final Date packetReceived) {
         final AvlGpsElement gps = avl.getGps();
-        final Date gpsTime = new Date(avl.getGpsTimestamp());
-
+        final Date gpsTime = new Date(avl.getTimestamp());
+        final int coordPropScale = 10;
         msg.setAltitude(Integer.valueOf(gps.getAltitude()));
-        msg.setX(BigDecimal.valueOf(gps.getLongitude()));
-        msg.setY(BigDecimal.valueOf(gps.getLatitude()));
+        msg.setX(gps.getLongitude(coordPropScale));
+        msg.setY(gps.getLatitude(coordPropScale));
         msg.setVectorSpeed(Integer.valueOf(gps.getSpeed()));
         msg.setVectorAngle(Integer.valueOf(gps.getAngle()));
         msg.setVisibleSattelites(Integer.valueOf(gps.getSatellites()));
@@ -72,15 +74,6 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
         }
     }
 
-    //    private static BigDecimal locateOdometer(final AvlIoElement io) {
-    //	for (int index = 0; index < io.intIo.length; index++) {
-    //	    if (io.intIo[index].ioId == AvlIoCodes.VIRT_ODOMETER.id) {
-    //		return new BigDecimal(io.intIo[index].ioValue);
-    //	    }
-    //	}
-    //	return null;
-    //    }
-
     private static boolean locateDin1(final AvlIoElement io) {
         for (int index = 0; index < io.byteIo.length; index++) {
             if (io.byteIo[index].ioId == AvlIoCodes.DIN1.id) {
@@ -92,8 +85,8 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
 
     private static BigDecimal locatePowerSupplyVot(final AvlIoElement io) {
         for (int index = 0; index < io.shortIo.length; index++) {
-            if (io.shortIo[index].ioId == AvlIoCodes.POWER_SUPPLY_VOLT.id) {
-                return new BigDecimal((double) io.shortIo[index].ioValue / 1000);
+            if (io.shortIo[index].ioId == AvlIoCodes.EXTERNAL_VOLT.id) {
+                return voltageFrom(io.shortIo[index].ioValue);
             }
         }
         return null;
@@ -102,15 +95,19 @@ public class AvlToMessageConverter<T extends AbstractAvlMessage> {
     private static BigDecimal locateBatteryVot(final AvlIoElement io) {
         for (int index = 0; index < io.shortIo.length; index++) {
             if (io.shortIo[index].ioId == AvlIoCodes.BATTERY_VOLT.id) {
-                return new BigDecimal((double) io.shortIo[index].ioValue / 1000);
+                return voltageFrom(io.shortIo[index].ioValue);
             }
         }
         return null;
     }
 
+    private static BigDecimal voltageFrom(final short value) {
+        return valueOf(value).setScale(2).divide(valueOf(1000), HALF_UP); // TODO voltages to better be represented with scale 3
+    }
+
     private static boolean locateGpsPower(final AvlIoElement io) {
         for (int index = 0; index < io.byteIo.length; index++) {
-            if (io.byteIo[index].ioId == AvlIoCodes.GPS_POWER.id) {
+            if (io.byteIo[index].ioId == AvlIoCodes.GNSS_STATUS.id) {
                 return io.byteIo[index].ioValue == 1;
             }
         }

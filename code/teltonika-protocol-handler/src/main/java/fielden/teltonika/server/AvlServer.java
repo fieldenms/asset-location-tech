@@ -1,4 +1,4 @@
-package ua.com.fielden.platform.gis.gps.server;
+package fielden.teltonika.server;
 
 import static org.apache.logging.log4j.LogManager.getLogger;
 
@@ -9,32 +9,35 @@ import java.util.concurrent.Executors;
 import org.apache.logging.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.group.ChannelGroup;
+import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 
-import ua.com.fielden.platform.gis.gps.factory.IGpsHandlerFactory;
+import fielden.teltonika.IAvlTrackerHandler;
 
-public class ServerTeltonika implements Runnable {
+public class AvlServer implements Runnable {
 
-    protected final static Logger LOGGER = getLogger(ServerTeltonika.class);
+    protected final static Logger LOGGER = getLogger(AvlServer.class);
 
     private final String host;
     private final int port;
-    private final IGpsHandlerFactory handlerFactory;
     public final ChannelGroup allChannels;
     private ServerBootstrap bootstrap;
     private Channel serverChannel;
     private final ConcurrentHashMap<String, Channel> existingConnections;
+    private final IAvlTrackerHandler avlTrackerHandler;
 
-    public ServerTeltonika(final String host, final int port, final ConcurrentHashMap<String, Channel> existingConnections, final ChannelGroup allChannels, final IGpsHandlerFactory handlerFactory) {
+    public AvlServer(final String host, final int port, final IAvlTrackerHandler avlTrackerHandler) {
         this.host = host;
         this.port = port;
-        this.handlerFactory = handlerFactory;
-        this.allChannels = allChannels;
-        this.existingConnections = existingConnections;
+        this.avlTrackerHandler = avlTrackerHandler;
+        this.allChannels = new DefaultChannelGroup("fielden-avl-server");
+        this.existingConnections = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -42,7 +45,7 @@ public class ServerTeltonika implements Runnable {
         if (bootstrap != null) {
             throw new IllegalArgumentException("Server has already been run.");
         }
-        LOGGER.info("\tNetty GPS server starting...");
+        LOGGER.info("\tNetty AVL server starting...");
         // Configure the server.
         bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool()));
         bootstrap.setOption("child.keepAlive", false);
@@ -52,14 +55,14 @@ public class ServerTeltonika implements Runnable {
             @Override
             public ChannelPipeline getPipeline() throws Exception {
                 LOGGER.info("New pipe is requested.");
-                return Channels.pipeline(new TransparentEncoder(), new AvlFrameDecoder(), handlerFactory.create());
+                return Channels.pipeline(new TransparentEncoder(), new AvlFrameDecoder(), new AvlServerHandler(existingConnections, allChannels, avlTrackerHandler));
             }
         });
 
         // Bind and start to accept incoming connections.
         serverChannel = bootstrap.bind(new InetSocketAddress(host, port));
         allChannels.add(serverChannel);
-        LOGGER.info("\tNetty GPS server started on " + host + ":" + port);
+        LOGGER.info("\tNetty AVL server started on " + host + ":" + port);
     }
 
     public void shutdown() {
@@ -72,6 +75,13 @@ public class ServerTeltonika implements Runnable {
             bootstrap.releaseExternalResources();
         }
         LOGGER.info("External resources released.");
+    }
+
+    public class TransparentEncoder extends OneToOneEncoder {
+        @Override
+        protected Object encode(final ChannelHandlerContext ctx, final Channel channel, final Object msg) throws Exception {
+            return msg;
+        }
     }
 
 }
